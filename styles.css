@@ -1,0 +1,827 @@
+/* Reset and base styles - matching IndustryResume design system */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: 210 100% 55%;
+    --primary-dark: 220 100% 60%;
+    --gray-50: 210 20% 98%;
+    --gray-100: 220 14% 96%;
+    --gray-200: 220 13% 91%;
+    --gray-300: 216 12% 84%;
+    --gray-500: 107 14% 62%;
+    --gray-600: 215 16% 47%;
+    --gray-700: 215 25% 27%;
+    --gray-900: 222 84% 5%;
+    --green-500: 142 76% 36%;
+    --green-600: 142 72% 29%;
+    --green-800: 143 64% 24%;
+    --green-50: 142 76% 97%;
+    --green-200: 142 76% 85%;
+    --blue-50: 214 100% 97%;
+    --blue-500: 217 91% 60%;
+    --emerald-50: 166 76% 97%;
+    --emerald-500: 160 84% 39%;
+    --purple-50: 270 100% 98%;
+    --purple-500: 271 81% 56%;
+    --red-500: 0 84% 60%;
+    --orange-400: 31 91% 61%;
+    --yellow-400: 45 93% 47%;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    color: hsl(var(--gray-900));
+    background: linear-gradient(135deg, hsl(210 100% 97%), white, hsl(220 100% 97%));
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header - matching IndustryResume design */
+.header {
+    padding: 1.5rem 0;
+    background: white;
+    border-bottom: 1px solid hsl(var(--gray-200) / 0.2);
+    margin-bottom: 2rem;
+}
+
+.header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.logo-text-large {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-subtext {
+    font-size: 0.75rem;
+    color: hsl(var(--gray-600));
+}
+
+.nav {
+    display: none;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-outline {
+    background: white;
+    color: hsl(var(--gray-700));
+    border: 1px solid hsl(var(--gray-200));
+    padding: 0.5rem 1rem;
+}
+
+.btn-outline:hover {
+    background: hsl(var(--gray-50));
+    border-color: hsl(210 100% 55% / 0.3);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: hsl(var(--gray-600));
+    text-decoration: none;
+    padding: 0;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    color: hsl(var(--primary));
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+.form-section, .preview-section {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+    border: 1px solid hsl(var(--gray-100));
+}
+
+.form-section h2, .preview-section h2 {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.form-section h3 {
+    color: hsl(var(--gray-700));
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    border-bottom: 2px solid hsl(var(--gray-200));
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: hsl(var(--gray-700));
+}
+
+.form-help {
+    display: block;
+    font-size: 12px;
+    color: hsl(var(--gray-500));
+    margin-top: 5px;
+    font-style: italic;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid hsl(var(--gray-200));
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.3s ease;
+    background-color: hsl(var(--gray-50));
+    color: hsl(var(--gray-900));
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    background-color: white;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+    color: white;
+    box-shadow: 0 4px 15px hsl(var(--primary) / 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, hsl(210 100% 50%), hsl(220 100% 55%));
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px hsl(var(--primary) / 0.4);
+}
+
+.btn-secondary {
+    background: hsl(var(--gray-50));
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--gray-200));
+    margin: 10px 0;
+}
+
+.btn-secondary:hover {
+    background: hsl(var(--gray-100));
+    border-color: hsl(var(--primary));
+    transform: scale(1.02);
+}
+
+.experience-item, .education-item {
+    border: 1px solid hsl(var(--gray-200));
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    background: hsl(var(--gray-50));
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.experience-item:hover, .education-item:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.1);
+}
+
+.remove-item {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: hsl(var(--red-500));
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.remove-item:hover {
+    background: hsl(0 84% 50%);
+    transform: scale(1.1);
+}
+
+/* Resume Preview Styles */
+#resume-preview {
+    background: white;
+    border: 1px solid hsl(var(--gray-200));
+    border-radius: 10px;
+    padding: 30px;
+    margin-bottom: 20px;
+    min-height: 600px;
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.4;
+    color: hsl(var(--gray-900));
+}
+
+.resume-header {
+    text-align: center;
+    border-bottom: 3px solid hsl(var(--primary));
+    padding-bottom: 20px;
+    margin-bottom: 25px;
+}
+
+.resume-name {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: hsl(var(--gray-900));
+    margin-bottom: 10px;
+}
+
+.resume-contact {
+    font-size: 1rem;
+    color: hsl(var(--gray-600));
+    margin-bottom: 5px;
+}
+
+.resume-section {
+    margin-bottom: 25px;
+}
+
+.resume-section h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: hsl(var(--primary));
+    border-bottom: 1px solid hsl(var(--gray-300));
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.resume-job {
+    margin-bottom: 20px;
+}
+
+.job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.job-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: hsl(var(--gray-900));
+}
+
+.job-company {
+    font-style: italic;
+    color: hsl(var(--gray-600));
+    margin-top: 2px;
+}
+
+.job-dates {
+    font-size: 0.9rem;
+    color: hsl(var(--gray-600));
+    text-align: right;
+}
+
+.job-responsibilities {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.job-responsibilities ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.job-responsibilities li {
+    margin-bottom: 4px;
+    color: hsl(var(--gray-700));
+}
+
+.resume-education {
+    margin-bottom: 15px;
+}
+
+.education-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.degree-info {
+    font-weight: 700;
+    color: hsl(var(--gray-900));
+}
+
+.school-info {
+    font-style: italic;
+    color: hsl(var(--gray-600));
+    margin-top: 2px;
+}
+
+.competencies-list, .skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.competency-tag, .skill-tag {
+    background: linear-gradient(135deg, hsl(var(--blue-50)), hsl(214 100% 95%));
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.2);
+    font-weight: 500;
+}
+
+.skill-category {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.skill-category strong {
+    color: hsl(var(--gray-900));
+    margin-right: 8px;
+    font-weight: 600;
+}
+
+.publications-content {
+    line-height: 1.6;
+}
+
+.publications-list {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.publications-list li {
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.publications-link {
+    margin-top: 15px;
+    font-weight: 500;
+}
+
+.publications-link a {
+    color: hsl(var(--primary));
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.publications-link a:hover {
+    text-decoration: underline;
+    color: hsl(var(--primary-dark));
+}
+
+.presentations-section, .awards-section {
+    margin-bottom: 15px;
+}
+
+.presentations-list {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.presentations-list li {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.preview-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .form-section, .preview-section {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .resume-name {
+        font-size: 1.8rem;
+    }
+    
+    .job-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .job-dates {
+        text-align: left;
+        margin-top: 5px;
+    }
+    
+    .education-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .form-section, .preview-actions {
+        display: none;
+    }
+    
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .preview-section {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+    }
+    
+    #resume-preview {
+        box-shadow: none;
+        border: none;
+        padding: 20px;
+    }
+}
+
+/* Loading and animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Industry-specific color schemes for PhD/Postdoc resumes */
+.industry-biotechnology .resume-header {
+    border-bottom-color: hsl(var(--emerald-500));
+}
+
+.industry-biotechnology .resume-section h3 {
+    color: hsl(var(--emerald-500));
+}
+
+.industry-pharmaceuticals .resume-header {
+    border-bottom-color: hsl(var(--blue-500));
+}
+
+.industry-pharmaceuticals .resume-section h3 {
+    color: hsl(var(--blue-500));
+}
+
+.industry-technology .resume-header {
+    border-bottom-color: hsl(var(--primary));
+}
+
+.industry-technology .resume-section h3 {
+    color: hsl(var(--primary));
+}
+
+.industry-consulting .resume-header {
+    border-bottom-color: hsl(var(--purple-500));
+}
+
+.industry-consulting .resume-section h3 {
+    color: hsl(var(--purple-500));
+}
+
+.industry-finance .resume-header {
+    border-bottom-color: hsl(var(--orange-400));
+}
+
+.industry-finance .resume-section h3 {
+    color: hsl(var(--orange-400));
+}
+
+.industry-healthcare .resume-header {
+    border-bottom-color: hsl(var(--green-500));
+}
+
+.industry-healthcare .resume-section h3 {
+    color: hsl(var(--green-500));
+}
+
+.industry-government .resume-header {
+    border-bottom-color: hsl(var(--gray-600));
+}
+
+.industry-government .resume-section h3 {
+    color: hsl(var(--gray-600));
+}
+
+.industry-regulatory .resume-header {
+    border-bottom-color: hsl(var(--purple-500));
+}
+
+.industry-regulatory .resume-section h3 {
+    color: hsl(var(--purple-500));
+}
+
+.industry-marketing .resume-header {
+    border-bottom-color: hsl(var(--red-500));
+}
+
+.industry-marketing .resume-section h3 {
+    color: hsl(var(--red-500));
+}
+
+.industry-academia .resume-header {
+    border-bottom-color: hsl(var(--gray-700));
+}
+
+.industry-academia .resume-section h3 {
+    color: hsl(var(--gray-700));
+}
+
+/* Section styling */
+.section-subtitle {
+    font-size: 1.125rem;
+    color: hsl(var(--gray-600));
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+/* Footer - matching IndustryResume design */
+.footer {
+    background: hsl(var(--gray-50));
+    border-top: 1px solid hsl(var(--gray-200));
+    padding: 3rem 0;
+    margin-top: 4rem;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.footer-section {
+    text-align: center;
+}
+
+.footer-section h4 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: hsl(var(--gray-900));
+}
+
+.footer-section .btn-link {
+    display: block;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.footer-bottom {
+    padding-top: 2rem;
+    border-top: 1px solid hsl(var(--gray-200));
+    text-align: center;
+}
+
+.footer-bottom a {
+    color: hsl(var(--primary));
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer-bottom a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive design */
+@media (min-width: 640px) {
+    .nav {
+        display: flex;
+    }
+    
+    .footer-section {
+        text-align: left;
+    }
+    
+    .footer-section .btn-link {
+        text-align: left;
+    }
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .form-section, .preview-section {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .resume-name {
+        font-size: 1.8rem;
+    }
+    
+    .job-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .job-dates {
+        text-align: left;
+        margin-top: 5px;
+    }
+    
+    .education-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Notification and success states */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.notification-success {
+    background: hsl(var(--green-500));
+}
+
+.notification-error {
+    background: hsl(var(--red-500));
+}
+
+.notification-info {
+    background: hsl(var(--blue-500));
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "phd-to-industry-resume-tool",
+  "version": "1.0.0",
+  "description": "A specialized web application for PhDs and postdocs transitioning from academia to industry careers",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "python -m http.server 8000",
+    "build": "echo 'No build process needed for static site'",
+    "test": "echo 'No tests specified'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/IndustryResumeTool.git"
+  },
+  "keywords": [
+    "phd",
+    "postdoc",
+    "academia-to-industry",
+    "career-transition",
+    "resume",
+    "cv",
+    "biotechnology",
+    "pharmaceuticals",
+    "consulting",
+    "data-science",
+    "web-app",
+    "javascript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/IndustryResumeTool/issues"
+  },
+  "homepage": "https://yourusername.github.io/IndustryResumeTool",
+  "devDependencies": {},
+  "dependencies": {}
+}

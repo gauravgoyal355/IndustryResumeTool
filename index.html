@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhD to Industry Resume Tool</title>
+    
+    <!-- Google Fonts - Inter (matching your landing page) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons (matching your landing page) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="container">
+                <div class="logo">
+                    <div>
+                        <div class="logo-text-large text-gradient">PhD Resume Tool</div>
+                        <div class="logo-subtext">Academic to Industry Transitions</div>
+                    </div>
+                </div>
+                <nav class="nav">
+                    <a href="#" class="btn-link">Home</a>
+                    <a href="https://industryresume.com/blog/" class="btn-link" target="_blank">Resume Tips</a>
+                    <a href="https://industryresume.com/faq/" class="btn-link" target="_blank">FAQ</a>
+                    <a href="https://industryresume.com/" class="btn btn-outline" target="_blank">IndustryResume</a>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+            <div class="main-content">
+                <div class="form-section">
+                    <h2>Create Your Industry Resume</h2>
+                    <p class="section-subtitle">Transform your academic experience into a compelling industry resume</p>
+                <form id="resume-form">
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" name="fullName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" name="location" placeholder="City, State">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="linkedin">LinkedIn URL</label>
+                        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourprofile">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="website">Personal Website/Portfolio</label>
+                        <input type="url" id="website" name="website" placeholder="https://yourwebsite.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="degree">Highest Degree</label>
+                        <select id="degree" name="degree">
+                            <option value="">Select degree</option>
+                            <option value="PhD">Ph.D.</option>
+                            <option value="Postdoc">Postdoc</option>
+                            <option value="MS">M.S.</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="industry">Target Industry *</label>
+                        <select id="industry" name="industry" required>
+                            <option value="">Select an industry</option>
+                            <option value="biotechnology">Biotechnology</option>
+                            <option value="pharmaceuticals">Pharmaceuticals</option>
+                            <option value="technology">Technology/Software</option>
+                            <option value="consulting">Consulting</option>
+                            <option value="finance">Finance/Investment</option>
+                            <option value="healthcare">Healthcare/Medical Devices</option>
+                            <option value="government">Government/Policy</option>
+                            <option value="nonprofit">Non-profit</option>
+                            <option value="academia">Academia/Research</option>
+                            <option value="regulatory">Regulatory Affairs</option>
+                            <option value="marketing">Marketing/Communications</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="summary">Executive Summary</label>
+                        <textarea id="summary" name="summary" rows="4" placeholder="1-2 sentence description highlighting your expertise and career transition goals..."></textarea>
+                        <small class="form-help">Focus on your value proposition and what you bring to industry</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="coreCompetencies">Core Competencies</label>
+                        <textarea id="coreCompetencies" name="coreCompetencies" rows="3" placeholder="High-level areas of expertise (e.g., Molecular Biology, Immunology, Computational Biology, Data Analysis, Project Management)"></textarea>
+                        <small class="form-help">List 6-8 key areas that align with your target industry</small>
+                    </div>
+
+                    <h3>Experience</h3>
+                    <div id="experience-section">
+                        <div class="experience-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="jobTitle1">Position Title</label>
+                                    <input type="text" id="jobTitle1" name="jobTitle1" placeholder="e.g., Postdoctoral Research Fellow, Graduate Research Assistant">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company1">Institution/Organization</label>
+                                    <input type="text" id="company1" name="company1" placeholder="e.g., University of California, Genentech">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="startDate1">Start Date</label>
+                                    <input type="month" id="startDate1" name="startDate1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="endDate1">End Date</label>
+                                    <input type="month" id="endDate1" name="endDate1">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="current1" name="current1"> Current Position
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="responsibilities1">Key Responsibilities & Achievements</label>
+                                <textarea id="responsibilities1" name="responsibilities1" rows="3" placeholder="• Focus on transferable skills and quantifiable results&#10;• Use industry-relevant language (e.g., 'managed projects' vs 'conducted research')&#10;• Include budget/timeline management, team leadership, data analysis"></textarea>
+                                <small class="form-help">Translate academic work into industry language - emphasize project management, collaboration, and business impact</small>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="add-experience" class="btn-secondary">+ Add Another Experience</button>
+
+                    <h3>Education</h3>
+                    <div id="education-section">
+                        <div class="education-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="degree1">Degree</label>
+                                    <input type="text" id="degree1" name="degree1" placeholder="e.g., Bachelor of Science">
+                                </div>
+                                <div class="form-group">
+                                    <label for="field1">Field of Study</label>
+                                    <input type="text" id="field1" name="field1" placeholder="e.g., Computer Science">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="school1">School/University</label>
+                                    <input type="text" id="school1" name="school1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gradYear1">Graduation Year</label>
+                                    <input type="number" id="gradYear1" name="gradYear1" min="1950" max="2030">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="add-education" class="btn-secondary">+ Add Another Education</button>
+
+                    <h3>Technical Skills</h3>
+                    <div class="form-group">
+                        <label for="computationalSkills">Computational Skills</label>
+                        <textarea id="computationalSkills" name="computationalSkills" rows="2" placeholder="Software & programming languages. Include packages used (e.g., Python (pandas, NumPy), R (ggplot2, dplyr), MATLAB, ImageJ)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="labSkills">Laboratory Skills (In Vitro)</label>
+                        <textarea id="labSkills" name="labSkills" rows="3" placeholder="Wet lab techniques: PCR, qPCR, RT-qPCR, CRISPR/Cas9, Flow cytometry, Western blot, ELISA, cell culture, etc."></textarea>
+                        <small class="form-help">Be specific about techniques and include equipment/instrumentation experience</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="invivo">In Vivo Experience</label>
+                        <textarea id="invivo" name="invivo" rows="2" placeholder="Animal work experience (if applicable): species, procedures, certifications"></textarea>
+                        <small class="form-help">Only include if relevant to target role</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="otherSkills">Other Technical Skills</label>
+                        <textarea id="otherSkills" name="otherSkills" rows="2" placeholder="Additional relevant skills (e.g., microscopy, spectroscopy, statistical analysis, project management software)"></textarea>
+                    </div>
+
+                    <h3>Publications</h3>
+                    <div class="form-group">
+                        <label for="publications">Selected Publications</label>
+                        <textarea id="publications" name="publications" rows="4" placeholder="List 2-3 most relevant publications with full citations. Include DOI or PMID if available."></textarea>
+                        <small class="form-help">Choose publications most relevant to your target industry</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="publicationsLink">Link to Full Publication List</label>
+                        <input type="url" id="publicationsLink" name="publicationsLink" placeholder="e.g., Google Scholar, ORCID, or personal website">
+                    </div>
+
+                    <h3>Presentations & Awards</h3>
+                    <div class="form-group">
+                        <label for="presentations">Selected Presentations & Posters</label>
+                        <textarea id="presentations" name="presentations" rows="3" placeholder="List invited talks, conference presentations, and poster sessions. Include conference name and year."></textarea>
+                        <small class="form-help">Shows communication skills and recognition in your field</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="awards">Awards & Honors</label>
+                        <textarea id="awards" name="awards" rows="2" placeholder="Fellowships, grants, awards, honors (e.g., NSF Fellowship, Best Poster Award)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certifications">Certifications</label>
+                        <textarea id="certifications" name="certifications" rows="2" placeholder="Professional certifications relevant to industry (e.g., GCP, Regulatory Affairs, PMP, Six Sigma)"></textarea>
+                        <small class="form-help">Include only certifications relevant to your target industry</small>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Generate Resume</button>
+                </form>
+            </div>
+
+            <div class="preview-section">
+                <h2>Resume Preview</h2>
+                <div id="resume-preview">
+                    <p>Fill out the form to see your resume preview here.</p>
+                </div>
+                <div class="preview-actions">
+                <button id="download-pdf" class="btn btn-primary" style="display:none;">
+                <i data-lucide="download" class="icon"></i> Download PDF
+                </button>
+                <button id="print-resume" class="btn btn-outline" style="display:none;">
+                <i data-lucide="printer" class="icon"></i> Print
+                </button>
+                </div>
+                </div>
+                </div>
+                </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-section">
+                        <div class="logo">
+                            <div>
+                                <div class="logo-text text-gradient">PhD Resume Tool</div>
+                                <div class="logo-subtext">Academic to Industry</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>Resources</h4>
+                        <a href="https://industryresume.com/blog/" class="btn-link" target="_blank">Resume Best Practices</a>
+                        <a href="https://industryresume.com/blog/academic-cv-vs-industry-resume/" class="btn-link" target="_blank">CV vs Resume Guide</a>
+                        <a href="https://industryresume.com/blog/translate-research-skills/" class="btn-link" target="_blank">Skills Translation</a>
+                        <a href="https://industryresume.com/faq/" class="btn-link" target="_blank">FAQ</a>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>Stay Updated</h4>
+                        <p style="font-size: 0.875rem; color: hsl(var(--gray-600)); margin-bottom: 1rem;">Get the latest resume tips and career advice for STEM PhDs.</p>
+                        <a href="https://industryresume.com/" class="btn btn-primary" target="_blank" style="width: 100%;">Join Our Newsletter</a>
+                    </div>
+                </div>
+                
+                <div class="footer-bottom">
+                    <p style="font-size: 0.875rem; color: hsl(var(--gray-500)); margin-bottom: 0.5rem;">
+                        © 2024 PhD Resume Tool. Part of the <a href="https://industryresume.com/" target="_blank" style="color: hsl(var(--primary));">IndustryResume</a> ecosystem.
+                    </p>
+                </div>
+            </div>
+        </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
