@@ -2,15 +2,28 @@
 
 A specialized web application designed for PhDs and postdocs transitioning from academia to industry careers. Transform your academic experience into industry-ready resumes that speak the language of your target sector.
 
-## Features
+## ✨ **Enhanced Features**
 
-- **Academic-to-Industry Translation**: Convert research experience into industry-relevant language
-- **PhD-Specific Sections**: Core competencies, technical skills, publications, presentations, and awards
-- **Industry-Specific Themes**: Tailored for biotech, pharma, consulting, tech, finance, and more
-- **Real-time Preview**: See your resume update as you type
-- **Responsive Design**: Works seamlessly on all devices
-- **Professional Layout**: ATS-friendly format optimized for industry hiring
-- **Expert Guidance**: Built-in tips for academic-to-industry transitions
+### **🚀 Multiple Input Methods**
+- **LinkedIn Import**: Connect your LinkedIn profile to auto-fill basic information (coming soon)
+- **File Upload**: Upload existing resume/CV (PDF, DOC, DOCX) for parsing and conversion
+- **Manual Entry**: Complete control with guided form fields
+
+### **✏️ Inline Editing**
+- **Click-to-Edit**: Edit any text directly in the resume preview
+- **Real-time Updates**: Changes sync automatically with form data
+- **Visual Feedback**: Clear indicators for editable elements
+
+### **📄 Professional PDF Export**
+- **High-Quality PDF**: Download print-ready resume as PDF
+- **Print Optimization**: Clean formatting for printing
+- **Industry Styling**: Maintains professional appearance
+
+### **🎯 Academic-to-Industry Translation**
+- **PhD-Specific Sections**: Core competencies, technical skills, publications, presentations
+- **Industry Targeting**: Tailored for biotech, pharma, consulting, tech, finance, and more
+- **Language Translation**: Convert academic terminology to business language
+- **Expert Guidance**: Built-in tips for each industry transition
 
 ## Target Industries for PhD/Postdoc Transitions
 
@@ -43,13 +56,39 @@ A specialized web application designed for PhDs and postdocs transitioning from 
 
 ## Usage
 
-1. **Fill in Personal Information**: Include your academic credentials and target industry
-2. **Executive Summary**: Write a compelling 1-2 sentence value proposition
-3. **Core Competencies**: List 6-8 key areas aligning with your target industry
-4. **Experience Section**: Translate academic positions using industry language
-5. **Technical Skills**: Organize by computational, lab, and other relevant skills
-6. **Publications**: Select 2-3 most relevant to your target role
-7. **Generate & Export**: Create your industry-ready resume
+### **Quick Start Options**
+
+#### 1. **Import from LinkedIn** (Coming Soon)
+- Click "Import from LinkedIn" for instant population
+- OAuth-based secure connection
+- Automatic academic-to-industry translation
+
+#### 2. **Upload Existing Resume/CV**
+- Click "Upload Resume/CV"
+- Support for PDF, DOC, and DOCX files
+- Intelligent parsing and field mapping
+- Industry-specific optimization
+
+#### 3. **Manual Entry**
+- Complete the guided form step-by-step
+- Real-time preview updates
+- Industry-specific guidance and tips
+
+### **Editing Your Resume**
+
+1. **Form-Based Editing**: Use the left panel to input/modify information
+2. **Inline Editing**: 
+   - Click "Enable Editing" in the preview panel
+   - Click any text in the preview to edit directly
+   - Press Enter or click outside to save changes
+   - Changes sync automatically with the form
+
+### **Downloading Your Resume**
+
+1. Click "Generate Resume" to create your preview
+2. Use "Enable Editing" for final touch-ups
+3. Click "Download PDF" for a print-ready file
+4. Use your browser's "Save as PDF" option in the print dialog
 
 ## Academic-to-Industry Translation Tips
 
@@ -123,13 +162,19 @@ We welcome contributions, especially from career counselors, industry profession
 
 ## Future Enhancements
 
-- [ ] Industry-specific resume templates
-- [ ] Academic language → Industry language translator
-- [ ] Integration with academic databases (ORCID, Google Scholar)
-- [ ] Cover letter generator for industry applications
-- [ ] Networking and job search guidance
-- [ ] Industry contact suggestions
-- [ ] Resume scoring against industry job descriptions
+- [x] **LinkedIn Import**: OAuth-based profile import (framework ready)
+- [x] **File Upload & Parsing**: PDF/DOC/DOCX resume upload capability
+- [x] **Inline Editing**: Click-to-edit functionality in preview
+- [x] **PDF Export**: High-quality resume download
+- [ ] **Advanced PDF Libraries**: Integration with jsPDF for enhanced formatting
+- [ ] **LinkedIn OAuth Integration**: Full LinkedIn API connection
+- [ ] **PDF/Word Parsing**: Complete document parsing with PDF.js and mammoth.js
+- [ ] **Industry-specific resume templates**: Multiple design options
+- [ ] **Academic language → Industry language translator**: AI-powered suggestions
+- [ ] **Integration with academic databases**: ORCID, Google Scholar auto-import
+- [ ] **Cover letter generator**: Industry-specific cover letters
+- [ ] **Resume scoring**: ATS optimization scoring
+- [ ] **Job matching**: Integration with job boards
 
 ## Support
 

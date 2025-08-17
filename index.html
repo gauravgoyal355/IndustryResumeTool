@@ -39,6 +39,39 @@
                 <div class="form-section">
                     <h2>Create Your Industry Resume</h2>
                     <p class="section-subtitle">Transform your academic experience into a compelling industry resume</p>
+                    
+                    <!-- Import Options -->
+                    <div class="import-section">
+                        <h3>Quick Import Options</h3>
+                        <div class="import-options">
+                            <div class="import-option">
+                                <button type="button" id="linkedin-import" class="btn-import">
+                                    <i data-lucide="linkedin" class="icon"></i>
+                                    Import from LinkedIn
+                                </button>
+                                <p class="import-help">Connect your LinkedIn profile to auto-fill basic information</p>
+                            </div>
+                            
+                            <div class="import-option">
+                                <label for="file-upload" class="btn-import">
+                                    <i data-lucide="upload" class="icon"></i>
+                                    Upload Resume/CV
+                                    <input type="file" id="file-upload" accept=".pdf,.doc,.docx" style="display: none;">
+                                </label>
+                                <p class="import-help">Upload your existing resume or CV (PDF, DOC, DOCX)</p>
+                            </div>
+                            
+                            <div class="import-option">
+                                <button type="button" id="manual-entry" class="btn-import active">
+                                    <i data-lucide="edit-3" class="icon"></i>
+                                    Manual Entry
+                                </button>
+                                <p class="import-help">Fill out the form manually for complete control</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="divider"></div>
                 <form id="resume-form">
                     <div class="form-group">
                         <label for="fullName">Full Name *</label>
@@ -233,7 +266,17 @@
 
             <div class="preview-section">
                 <h2>Resume Preview</h2>
-                <div id="resume-preview">
+                <div class="preview-controls">
+                    <button id="edit-mode-toggle" class="btn-secondary">
+                        <i data-lucide="edit-2" class="icon"></i>
+                        <span>Enable Editing</span>
+                    </button>
+                    <div class="edit-mode-indicator" id="edit-mode-indicator" style="display: none;">
+                        <i data-lucide="info" class="icon"></i>
+                        Click any text to edit directly
+                    </div>
+                </div>
+                <div id="resume-preview" class="resume-preview">
                     <p>Fill out the form to see your resume preview here.</p>
                 </div>
                 <div class="preview-actions">
