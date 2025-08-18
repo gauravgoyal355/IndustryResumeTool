@@ -1601,16 +1601,654 @@ class ResumeBuilder {
 
     // Import methods
     importFromLinkedIn() {
-        this.showNotification('LinkedIn import feature coming soon! For now, you can manually copy your LinkedIn profile information.', 'info');
+        this.showLinkedInImportModal();
+    }
+
+    showLinkedInImportModal() {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'linkedin-import-modal';
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="this.parentElement.remove()">
+                <div class="modal-content" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h3><i data-lucide="linkedin" style="width: 20px; height: 20px; margin-right: 8px;"></i>Import from LinkedIn</h3>
+                        <button class="modal-close" onclick="this.closest('.linkedin-import-modal').remove()">&times;</button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="import-instructions">
+                            <h4>📋 How to Import Your LinkedIn Profile:</h4>
+                            <ol>
+                                <li><strong>Open LinkedIn:</strong> Go to <a href="https://www.linkedin.com/in/me" target="_blank">your LinkedIn profile</a> in a new tab</li>
+                                <li><strong>Copy Information:</strong> Select and copy the relevant sections from your profile</li>
+                                <li><strong>Paste Here:</strong> Use the form below to paste your information</li>
+                                <li><strong>Auto-Fill:</strong> Click "Import to Form" to populate the resume builder</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="linkedin-form">
+                            <div class="form-group">
+                                <label for="li-name">Full Name</label>
+                                <input type="text" id="li-name" placeholder="e.g., Dr. Sarah Chen">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="li-email">Email</label>
+                                    <input type="email" id="li-email" placeholder="your.email@example.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="li-phone">Phone</label>
+                                    <input type="tel" id="li-phone" placeholder="(555) 123-4567">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="li-location">Location</label>
+                                    <input type="text" id="li-location" placeholder="Boston, MA">
+                                </div>
+                                <div class="form-group">
+                                    <label for="li-linkedin">LinkedIn URL</label>
+                                    <input type="url" id="li-linkedin" placeholder="https://linkedin.com/in/yourname">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="li-headline">LinkedIn Headline</label>
+                                <input type="text" id="li-headline" placeholder="PhD Scientist | Drug Discovery | Molecular Biology">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="li-about">About Section</label>
+                                <textarea id="li-about" rows="4" placeholder="Paste your LinkedIn About section here..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="li-experience">Experience Section</label>
+                                <textarea id="li-experience" rows="6" placeholder="Paste your LinkedIn experience entries here (one job per paragraph)..."></textarea>
+                                <small>💡 Tip: Copy each job as a separate paragraph. Include job title, company, dates, and responsibilities.</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="li-education">Education Section</label>
+                                <textarea id="li-education" rows="4" placeholder="Paste your LinkedIn education entries here..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="li-skills">Skills Section</label>
+                                <textarea id="li-skills" rows="3" placeholder="Paste your LinkedIn skills here (comma-separated)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="this.closest('.linkedin-import-modal').remove()">Cancel</button>
+                        <button class="btn-primary" onclick="resumeBuilder.processLinkedInImport()">Import to Form</button>
+                        <button class="btn-import" onclick="resumeBuilder.loadSampleLinkedInData()">Load Sample Data</button>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        // In a real implementation, this would:
-        // 1. Open LinkedIn OAuth flow
-        // 2. Request profile data
-        // 3. Parse and populate form fields
-        // 4. Apply industry-specific translations
+        // Add modal styles
+        this.addModalStyles();
         
-        // Mock data for demonstration
-        this.populateMockData();
+        // Add to page
+        document.body.appendChild(modal);
+        
+        // Initialize icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Focus first input
+        setTimeout(() => {
+            document.getElementById('li-name').focus();
+        }, 100);
+    }
+    
+    addModalStyles() {
+        if (document.getElementById('linkedin-modal-styles')) return;
+        
+        const styles = document.createElement('style');
+        styles.id = 'linkedin-modal-styles';
+        styles.textContent = `
+            .linkedin-import-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            .modal-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            
+            .modal-content {
+                background: white;
+                border-radius: 12px;
+                max-width: 800px;
+                width: 100%;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.3s ease;
+            }
+            
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 24px;
+                border-bottom: 1px solid #e1e8ed;
+                background: linear-gradient(135deg, #0077b5, #005885);
+                color: white;
+                border-radius: 12px 12px 0 0;
+            }
+            
+            .modal-header h3 {
+                margin: 0;
+                display: flex;
+                align-items: center;
+                font-size: 1.2rem;
+            }
+            
+            .modal-close {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.2s;
+            }
+            
+            .modal-close:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            .modal-body {
+                padding: 24px;
+            }
+            
+            .import-instructions {
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 24px;
+            }
+            
+            .import-instructions h4 {
+                margin: 0 0 16px 0;
+                color: #0077b5;
+                font-size: 1.1rem;
+            }
+            
+            .import-instructions ol {
+                margin: 0;
+                padding-left: 20px;
+            }
+            
+            .import-instructions li {
+                margin-bottom: 8px;
+                line-height: 1.5;
+            }
+            
+            .import-instructions a {
+                color: #0077b5;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            
+            .import-instructions a:hover {
+                text-decoration: underline;
+            }
+            
+            .linkedin-form .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .linkedin-form .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                margin-bottom: 16px;
+            }
+            
+            .linkedin-form label {
+                display: block;
+                margin-bottom: 4px;
+                font-weight: 500;
+                color: #333;
+            }
+            
+            .linkedin-form input,
+            .linkedin-form textarea {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.2s;
+                font-family: inherit;
+            }
+            
+            .linkedin-form input:focus,
+            .linkedin-form textarea:focus {
+                outline: none;
+                border-color: #0077b5;
+                box-shadow: 0 0 0 3px rgba(0, 119, 181, 0.1);
+            }
+            
+            .linkedin-form small {
+                display: block;
+                margin-top: 4px;
+                color: #6b7280;
+                font-size: 12px;
+            }
+            
+            .modal-footer {
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+                padding: 20px 24px;
+                border-top: 1px solid #e1e8ed;
+                background: #f8f9fa;
+                border-radius: 0 0 12px 12px;
+            }
+            
+            .modal-footer button {
+                padding: 10px 20px;
+                border-radius: 6px;
+                border: none;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 14px;
+            }
+            
+            .btn-primary {
+                background: #0077b5;
+                color: white;
+            }
+            
+            .btn-primary:hover {
+                background: #005885;
+            }
+            
+            .btn-secondary {
+                background: #6b7280;
+                color: white;
+            }
+            
+            .btn-secondary:hover {
+                background: #4b5563;
+            }
+            
+            .btn-import {
+                background: #10b981;
+                color: white;
+            }
+            
+            .btn-import:hover {
+                background: #059669;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from {
+                    transform: translateY(30px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            @media (max-width: 640px) {
+                .linkedin-form .form-row {
+                    grid-template-columns: 1fr;
+                }
+                
+                .modal-footer {
+                    flex-direction: column;
+                }
+                
+                .modal-footer button {
+                    width: 100%;
+                }
+            }
+        `;
+        
+        document.head.appendChild(styles);
+    }
+    
+    processLinkedInImport() {
+        // Get data from modal form
+        const linkedInData = {
+            name: document.getElementById('li-name').value.trim(),
+            email: document.getElementById('li-email').value.trim(),
+            phone: document.getElementById('li-phone').value.trim(),
+            location: document.getElementById('li-location').value.trim(),
+            linkedin: document.getElementById('li-linkedin').value.trim(),
+            headline: document.getElementById('li-headline').value.trim(),
+            about: document.getElementById('li-about').value.trim(),
+            experience: document.getElementById('li-experience').value.trim(),
+            education: document.getElementById('li-education').value.trim(),
+            skills: document.getElementById('li-skills').value.trim()
+        };
+        
+        // Validate required fields
+        if (!linkedInData.name) {
+            this.showNotification('Please enter your name before importing.', 'error');
+            document.getElementById('li-name').focus();
+            return;
+        }
+        
+        try {
+            // Import basic information
+            this.importBasicInfo(linkedInData);
+            
+            // Import experience
+            this.importExperience(linkedInData.experience);
+            
+            // Import education
+            this.importEducation(linkedInData.education);
+            
+            // Import skills
+            this.importSkills(linkedInData.skills, linkedInData.headline);
+            
+            // Generate summary from about section
+            this.importSummary(linkedInData.about, linkedInData.headline);
+            
+            // Close modal
+            document.querySelector('.linkedin-import-modal').remove();
+            
+            // Update preview
+            this.updatePreview();
+            
+            // Show success message
+            this.showNotification('LinkedIn data imported successfully! Review and edit as needed.', 'success');
+            
+        } catch (error) {
+            console.error('Import error:', error);
+            this.showNotification('Error importing LinkedIn data. Please check your input and try again.', 'error');
+        }
+    }
+    
+    importBasicInfo(data) {
+        if (data.name) document.getElementById('fullName').value = data.name;
+        if (data.email) document.getElementById('email').value = data.email;
+        if (data.phone) document.getElementById('phone').value = data.phone;
+        if (data.location) document.getElementById('location').value = data.location;
+        if (data.linkedin) document.getElementById('linkedin').value = data.linkedin;
+    }
+    
+    importExperience(experienceText) {
+        if (!experienceText) return;
+        
+        // Split experience by double line breaks or clear separators
+        const experiences = experienceText.split(/\n\s*\n|\n\s*-{3,}|\n\s*={3,}/).filter(exp => exp.trim());
+        
+        experiences.forEach((exp, index) => {
+            if (index >= this.experienceCount) {
+                this.addExperience();
+            }
+            
+            const expIndex = index + 1;
+            const parsed = this.parseExperienceEntry(exp.trim());
+            
+            if (parsed.jobTitle) {
+                document.getElementById(`jobTitle${expIndex}`).value = parsed.jobTitle;
+            }
+            if (parsed.company) {
+                document.getElementById(`company${expIndex}`).value = parsed.company;
+            }
+            if (parsed.startDate) {
+                document.getElementById(`startDate${expIndex}`).value = parsed.startDate;
+            }
+            if (parsed.endDate && parsed.endDate !== 'Present') {
+                document.getElementById(`endDate${expIndex}`).value = parsed.endDate;
+            }
+            if (parsed.current) {
+                document.getElementById(`current${expIndex}`).checked = true;
+                document.getElementById(`endDate${expIndex}`).disabled = true;
+            }
+            if (parsed.responsibilities) {
+                document.getElementById(`responsibilities${expIndex}`).value = parsed.responsibilities;
+            }
+        });
+    }
+    
+    parseExperienceEntry(expText) {
+        const lines = expText.split('\n').map(line => line.trim()).filter(line => line);
+        const result = {
+            jobTitle: '',
+            company: '',
+            startDate: '',
+            endDate: '',
+            current: false,
+            responsibilities: ''
+        };
+        
+        if (lines.length === 0) return result;
+        
+        // First line is usually job title
+        result.jobTitle = lines[0];
+        
+        // Look for company and date patterns
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Check for date patterns (e.g., "Jan 2020 - Present", "2020-2023")
+            const dateMatch = line.match(/(\w{3}\s+\d{4}|\d{4})\s*[-–]\s*(\w{3}\s+\d{4}|\d{4}|Present|Current)/i);
+            if (dateMatch) {
+                result.startDate = this.parseDateString(dateMatch[1]);
+                const endDateStr = dateMatch[2];
+                if (endDateStr.toLowerCase().includes('present') || endDateStr.toLowerCase().includes('current')) {
+                    result.current = true;
+                } else {
+                    result.endDate = this.parseDateString(endDateStr);
+                }
+                continue;
+            }
+            
+            // If no company found yet and this line doesn't look like responsibilities
+            if (!result.company && !line.startsWith('•') && !line.startsWith('-') && line.length < 100) {
+                result.company = line;
+                continue;
+            }
+            
+            // Everything else goes to responsibilities
+            if (result.responsibilities) {
+                result.responsibilities += '\n' + line;
+            } else {
+                result.responsibilities = line;
+            }
+        }
+        
+        return result;
+    }
+    
+    parseDateString(dateStr) {
+        // Convert various date formats to YYYY-MM
+        if (!dateStr) return '';
+        
+        // Handle "Jan 2020" format
+        const monthYearMatch = dateStr.match(/(\w{3})\s+(\d{4})/);
+        if (monthYearMatch) {
+            const months = {
+                'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+            };
+            const month = months[monthYearMatch[1].toLowerCase()] || '01';
+            return `${monthYearMatch[2]}-${month}`;
+        }
+        
+        // Handle "2020" format
+        const yearMatch = dateStr.match(/\d{4}/);
+        if (yearMatch) {
+            return `${yearMatch[0]}-01`;
+        }
+        
+        return '';
+    }
+    
+    importEducation(educationText) {
+        if (!educationText) return;
+        
+        const educationEntries = educationText.split(/\n\s*\n/).filter(edu => edu.trim());
+        
+        educationEntries.forEach((edu, index) => {
+            if (index >= this.educationCount) {
+                this.addEducation();
+            }
+            
+            const eduIndex = index + 1;
+            const parsed = this.parseEducationEntry(edu.trim());
+            
+            if (parsed.degree) {
+                document.getElementById(`degree${eduIndex}`).value = parsed.degree;
+            }
+            if (parsed.field) {
+                document.getElementById(`field${eduIndex}`).value = parsed.field;
+            }
+            if (parsed.school) {
+                document.getElementById(`school${eduIndex}`).value = parsed.school;
+            }
+            if (parsed.year) {
+                document.getElementById(`gradYear${eduIndex}`).value = parsed.year;
+            }
+        });
+    }
+    
+    parseEducationEntry(eduText) {
+        const lines = eduText.split('\n').map(line => line.trim()).filter(line => line);
+        const result = {
+            degree: '',
+            field: '',
+            school: '',
+            year: ''
+        };
+        
+        if (lines.length === 0) return result;
+        
+        // First line is usually degree or school
+        const firstLine = lines[0];
+        
+        // Check if first line contains degree keywords
+        if (/phd|doctorate|ph\.d|master|bachelor|msc|bsc|ma|ba|md|jd/i.test(firstLine)) {
+            result.degree = firstLine;
+            if (lines.length > 1) {
+                result.school = lines[1];
+            }
+        } else {
+            result.school = firstLine;
+            if (lines.length > 1) {
+                result.degree = lines[1];
+            }
+        }
+        
+        // Extract field from degree if present
+        const fieldMatch = result.degree.match(/in\s+([^,\n]+)/i);
+        if (fieldMatch) {
+            result.field = fieldMatch[1].trim();
+            result.degree = result.degree.replace(/\s+in\s+[^,\n]+/i, '').trim();
+        }
+        
+        // Look for year in any line
+        const allText = eduText;
+        const yearMatch = allText.match(/(19|20)\d{2}/);
+        if (yearMatch) {
+            result.year = yearMatch[0];
+        }
+        
+        return result;
+    }
+    
+    importSkills(skillsText, headline) {
+        if (!skillsText && !headline) return;
+        
+        let allSkills = '';
+        
+        if (skillsText) {
+            // Clean up skills text (remove bullet points, extra spacing)
+            allSkills = skillsText.replace(/[•·-]/g, '').replace(/\n/g, ', ').replace(/,\s*,/g, ',');
+        }
+        
+        if (headline) {
+            // Extract skills from headline
+            const headlineSkills = headline.split(/[|•·]/).map(s => s.trim()).filter(s => s && s.length > 2);
+            if (headlineSkills.length > 0) {
+                allSkills = allSkills ? allSkills + ', ' + headlineSkills.join(', ') : headlineSkills.join(', ');
+            }
+        }
+        
+        if (allSkills) {
+            document.getElementById('coreCompetencies').value = allSkills;
+        }
+    }
+    
+    importSummary(aboutText, headline) {
+        let summary = '';
+        
+        if (aboutText) {
+            // Clean up about text and limit to reasonable length
+            summary = aboutText.replace(/\n\s*\n/g, ' ').trim();
+            if (summary.length > 500) {
+                summary = summary.substring(0, 500) + '...';
+            }
+        } else if (headline) {
+            // Generate summary from headline
+            summary = `Experienced professional with expertise in ${headline.toLowerCase()}.`;
+        }
+        
+        if (summary) {
+            document.getElementById('summary').value = summary;
+        }
+    }
+    
+    loadSampleLinkedInData() {
+        // Pre-fill the modal with sample data for demonstration
+        document.getElementById('li-name').value = 'Dr. Sarah Chen';
+        document.getElementById('li-email').value = 'sarah.chen@email.com';
+        document.getElementById('li-phone').value = '(555) 123-4567';
+        document.getElementById('li-location').value = 'Boston, MA';
+        document.getElementById('li-linkedin').value = 'https://linkedin.com/in/sarahchen';
+        document.getElementById('li-headline').value = 'PhD Scientist | Drug Discovery | Molecular Biology | Research Leadership';
+        document.getElementById('li-about').value = `Experienced PhD scientist with 5+ years in molecular biology and drug discovery. Proven track record of leading research projects that resulted in 2 patent applications and $1.5M in grant funding. Expertise in computational biology, in vitro assays, and translational research. Passionate about advancing therapeutic development through innovative science.`;
+        document.getElementById('li-experience').value = `Senior Research Scientist\nBioTech Innovations Inc.\nJan 2022 - Present\n• Lead drug discovery projects targeting oncology therapeutics\n• Developed novel screening assays resulting in 3 promising drug candidates\n• Managed cross-functional teams of 8 researchers\n• Secured $800K in NIH funding for collaborative research\n\nPostdoctoral Research Fellow\nHarvard Medical School\nSep 2019 - Dec 2021\n• Investigated molecular mechanisms of cancer drug resistance\n• Published 4 first-author papers in high-impact journals\n• Mentored 3 graduate students and 2 undergraduate researchers\n• Presented research at 6 international conferences`;
+        document.getElementById('li-education').value = `PhD in Molecular Biology\nMassachusetts Institute of Technology\n2019\n\nBachelor of Science in Biology\nStanford University\n2014`;
+        document.getElementById('li-skills').value = 'Molecular Biology, Drug Discovery, CRISPR, Flow Cytometry, Python, R, Project Management, Grant Writing, Team Leadership, Scientific Writing';
+        
+        this.showNotification('Sample LinkedIn data loaded! Click "Import to Form" to use this data.', 'info');
     }
 
     populateMockData() {
@@ -1742,7 +2380,7 @@ document.head.appendChild(notificationStyles);
 
 // Initialize the resume builder when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new ResumeBuilder();
+    window.resumeBuilder = new ResumeBuilder();
     
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
