@@ -2716,29 +2716,38 @@ class ResumeBuilder {
     }
     
     parseLinkedInCompanyBlock(block) {
+        console.log('🏢 Parsing company block:', block.substring(0, 100) + '...');
         const lines = block.split('\n').map(line => line.trim()).filter(line => line);
         const jobs = [];
         
-        if (lines.length === 0) return jobs;
+        if (lines.length === 0) {
+            console.log('⚠️ Empty company block');
+            return jobs;
+        }
         
         // First line is likely the company name
         const company = lines[0];
+        console.log('🏢 Company name identified:', company);
         
         // Look for job entries within this company
         let currentJob = null;
         
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i];
+            console.log(`📝 Processing line ${i}: "${line}"`);
             
             // Skip duration lines (e.g., "3 years 1 month")
             if (line.match(/^\d+\s+years?|^\d+\s+months?|^\(\d+\s+years?/i)) {
+                console.log('⏰ Skipping duration line:', line);
                 continue;
             }
             
             // Check if this is a job title
             if (this.looksLikeJobTitle(line)) {
+                console.log('💼 Job title detected:', line);
                 // Save previous job if exists
                 if (currentJob) {
+                    console.log('💾 Saving previous job:', currentJob.jobTitle);
                     jobs.push(currentJob);
                 }
                 
@@ -2751,26 +2760,32 @@ class ResumeBuilder {
                     current: false,
                     responsibilities: ''
                 };
+                console.log('🆕 Created new job entry for:', line);
                 continue;
             }
             
             // Check for dates
             const dateMatch = line.match(/(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi);
             if (dateMatch && currentJob) {
+                console.log('📅 Date detected:', line);
                 const dateStr = dateMatch[0];
                 const dateParts = dateStr.split(/[-–]/);
                 currentJob.startDate = this.parseDateString(dateParts[0].trim());
+                console.log('📅 Start date set:', currentJob.startDate);
                 
                 if (dateParts[1] && dateParts[1].match(/present|current/i)) {
                     currentJob.current = true;
+                    console.log('📅 Current position marked');
                 } else if (dateParts[1]) {
                     currentJob.endDate = this.parseDateString(dateParts[1].trim());
+                    console.log('📅 End date set:', currentJob.endDate);
                 }
                 continue;
             }
             
             // Check for location (skip it)
             if (line.match(/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s+[A-Z]/)) {
+                console.log('📍 Skipping location line:', line);
                 continue;
             }
             
@@ -2781,25 +2796,49 @@ class ResumeBuilder {
                 } else {
                     currentJob.responsibilities = line;
                 }
+                console.log('📋 Added to responsibilities:', line.substring(0, 50) + '...');
             }
         }
         
         // Add the last job
         if (currentJob) {
+            console.log('💾 Saving final job:', currentJob.jobTitle);
             jobs.push(currentJob);
         }
+        
+        console.log(`✅ Company block parsing complete. Found ${jobs.length} jobs:`);
+        jobs.forEach((job, index) => {
+            console.log(`  ${index + 1}. ${job.jobTitle} at ${job.company} (${job.startDate} - ${job.current ? 'Present' : job.endDate})`);
+        });
         
         return jobs;
     }
     
     looksLikeJobTitle(line) {
-        return (
-            line.match(/CEO|CTO|CFO|VP|President|Director|Manager|Scientist|Researcher|Engineer|Analyst|Assistant|Associate|Senior|Lead|Principal|Research/i) ||
-            (line.split(' ').length <= 6 && // Not too long
-             line.match(/^[A-Z]/) && // Starts with capital
-             !line.match(/^[A-Z\s&.,]{5,}$/) && // Not all caps (likely company)
-             !line.match(/University|Institute|Corporation|Company|Inc|LLC|Ltd/i)) // Not a company
+        console.log('🔍 Checking if line is job title:', line);
+        
+        // Check for executive/management titles
+        const executiveTitles = /CEO|CTO|CFO|VP|President|Director|Manager|Scientist|Researcher|Engineer|Analyst|Assistant|Associate|Senior|Lead|Principal|Research/i;
+        if (line.match(executiveTitles)) {
+            console.log('✅ Matched executive title pattern');
+            return true;
+        }
+        
+        // Check if it's properly formatted (starts with capital, reasonable length)
+        const properFormat = (
+            line.split(' ').length <= 6 && // Not too long
+            line.match(/^[A-Z]/) && // Starts with capital
+            !line.match(/^[A-Z\s&.,]{5,}$/) && // Not all caps (likely company)
+            !line.match(/University|Institute|Corporation|Company|Inc|LLC|Ltd/i) // Not a company
         );
+        
+        if (properFormat) {
+            console.log('✅ Matched proper format pattern');
+            return true;
+        }
+        
+        console.log('❌ Not recognized as job title');
+        return false;
     }
     
     extractLinkedInEducation(text) {
