@@ -563,6 +563,11 @@ class ResumeBuilder {
         }
     }
 
+    findElementIndex(element, selector) {
+        const elements = document.querySelectorAll(selector);
+        return Array.from(elements).indexOf(element);
+    }
+
     updateIndustryTheme() {
         const industry = document.getElementById('industry').value;
         const preview = document.getElementById('resume-preview');
@@ -577,64 +582,436 @@ class ResumeBuilder {
     }
 
     downloadPDF() {
-        // Enhanced PDF download using jsPDF
-        this.generatePDF();
+        const resumeContent = document.getElementById('resume-preview');
+        
+        if (resumeContent.innerHTML.includes('Fill out the form')) {
+            this.showNotification('Please generate a resume first before downloading.', 'error');
+            return;
+        }
+        
+        this.showNotification('Generating PDF... Please wait.', 'info');
+        
+        // Add a small delay to show the loading message
+        setTimeout(() => {
+            this.generatePDF();
+        }, 100);
     }
 
     generatePDF() {
-        // For now, we'll use the browser's print to PDF functionality
-        // In a production environment, you would integrate jsPDF library
+        try {
+            // Check if jsPDF is available
+            if (typeof window.jsPDF === 'undefined') {
+                this.fallbackToPrint();
+                return;
+            }
+            
+            const { jsPDF } = window.jsPDF;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // Page settings
+            const pageWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const margin = 20;
+            const contentWidth = pageWidth - (margin * 2);
+            let currentY = margin;
+            
+            // Get the resume data
+            const data = this.formData;
+            
+            // Helper function to check if we need a new page
+            const checkPageBreak = (neededSpace) => {
+                if (currentY + neededSpace > pageHeight - margin) {
+                    doc.addPage();
+                    currentY = margin;
+                }
+            };
+            
+            // Helper function to add text with proper wrapping
+            const addText = (text, x, y, options = {}) => {
+                const {
+                    fontSize = 10,
+                    fontStyle = 'normal',
+                    maxWidth = contentWidth,
+                    lineHeight = 6,
+                    align = 'left'
+                } = options;
+                
+                doc.setFontSize(fontSize);
+                doc.setFont('helvetica', fontStyle);
+                
+                if (text.length === 0) return y;
+                
+                const lines = doc.splitTextToSize(text, maxWidth);
+                
+                if (Array.isArray(lines)) {
+                    lines.forEach((line, index) => {
+                        if (align === 'center') {
+                            doc.text(line, pageWidth / 2, y + (index * lineHeight), { align: 'center' });
+                        } else {
+                            doc.text(line, x, y + (index * lineHeight));
+                        }
+                    });
+                    return y + (lines.length * lineHeight);
+                } else {
+                    if (align === 'center') {
+                        doc.text(lines, pageWidth / 2, y, { align: 'center' });
+                    } else {
+                        doc.text(lines, x, y);
+                    }
+                    return y + lineHeight;
+                }
+            };
+            
+            // Header
+            if (data.fullName) {
+                checkPageBreak(30);
+                currentY = addText(data.fullName, margin, currentY, {
+                    fontSize: 20,
+                    fontStyle: 'bold',
+                    align: 'center'
+                });
+                currentY += 5;
+            }
+            
+            // Contact information
+            const contactInfo = [];
+            if (data.email) contactInfo.push(data.email);
+            if (data.phone) contactInfo.push(data.phone);
+            if (data.location) contactInfo.push(data.location);
+            if (data.linkedin) contactInfo.push(data.linkedin);
+            if (data.website) contactInfo.push(data.website);
+            
+            if (contactInfo.length > 0) {
+                currentY = addText(contactInfo.join(' | '), margin, currentY, {
+                    fontSize: 10,
+                    align: 'center'
+                });
+                currentY += 10;
+            }
+            
+            // Add horizontal line
+            doc.setDrawColor(59, 130, 246); // Blue color
+            doc.setLineWidth(0.5);
+            doc.line(margin, currentY, pageWidth - margin, currentY);
+            currentY += 10;
+            
+            // Professional Summary
+            if (data.summary) {
+                checkPageBreak(25);
+                currentY = addText('PROFESSIONAL SUMMARY', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 3;
+                currentY = addText(data.summary, margin, currentY, {
+                    fontSize: 10,
+                    lineHeight: 5
+                });
+                currentY += 8;
+            }
+            
+            // Core Competencies
+            if (data.coreCompetencies) {
+                checkPageBreak(20);
+                currentY = addText('CORE COMPETENCIES', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 3;
+                
+                const competencies = data.coreCompetencies.split(',').map(comp => comp.trim()).filter(comp => comp);
+                const competencyText = competencies.join(' • ');
+                currentY = addText(competencyText, margin, currentY, {
+                    fontSize: 10,
+                    lineHeight: 5
+                });
+                currentY += 8;
+            }
+            
+            // Professional Experience
+            if (data.experiences && data.experiences.length > 0) {
+                checkPageBreak(25);
+                currentY = addText('PROFESSIONAL EXPERIENCE', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                
+                data.experiences.forEach((exp, index) => {
+                    if (exp.jobTitle || exp.company) {
+                        checkPageBreak(30);
+                        
+                        // Job title and dates on same line
+                        if (exp.jobTitle) {
+                            doc.setFontSize(11);
+                            doc.setFont('helvetica', 'bold');
+                            doc.text(exp.jobTitle, margin, currentY);
+                            
+                            // Add dates on the right
+                            const startDate = exp.startDate ? this.formatDate(exp.startDate) : '';
+                            const endDate = exp.current ? 'Present' : (exp.endDate ? this.formatDate(exp.endDate) : '');
+                            const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : '';
+                            
+                            if (dateRange) {
+                                doc.setFont('helvetica', 'normal');
+                                doc.setFontSize(10);
+                                doc.text(dateRange, pageWidth - margin, currentY, { align: 'right' });
+                            }
+                            currentY += 5;
+                        }
+                        
+                        // Company
+                        if (exp.company) {
+                            currentY = addText(exp.company, margin, currentY, {
+                                fontSize: 10,
+                                fontStyle: 'italic'
+                            });
+                            currentY += 2;
+                        }
+                        
+                        // Responsibilities
+                        if (exp.responsibilities) {
+                            const responsibilities = exp.responsibilities.split(/[•\n]/).map(resp => resp.trim()).filter(resp => resp);
+                            responsibilities.forEach(resp => {
+                                if (resp) {
+                                    checkPageBreak(8);
+                                    currentY = addText('• ' + resp, margin + 5, currentY, {
+                                        fontSize: 10,
+                                        lineHeight: 4
+                                    });
+                                    currentY += 1;
+                                }
+                            });
+                        }
+                        
+                        currentY += 5;
+                    }
+                });
+            }
+            
+            // Education
+            if (data.education && data.education.length > 0) {
+                checkPageBreak(25);
+                currentY = addText('EDUCATION', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                
+                data.education.forEach(edu => {
+                    if (edu.degree || edu.school) {
+                        checkPageBreak(15);
+                        
+                        // Degree and year on same line
+                        const degreeText = edu.degree + (edu.field ? ` in ${edu.field}` : '');
+                        doc.setFontSize(11);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(degreeText, margin, currentY);
+                        
+                        if (edu.gradYear) {
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(10);
+                            doc.text(edu.gradYear.toString(), pageWidth - margin, currentY, { align: 'right' });
+                        }
+                        currentY += 5;
+                        
+                        // School
+                        if (edu.school) {
+                            currentY = addText(edu.school, margin, currentY, {
+                                fontSize: 10,
+                                fontStyle: 'italic'
+                            });
+                        }
+                        
+                        currentY += 8;
+                    }
+                });
+            }
+            
+            // Technical Skills
+            const skillsSections = [
+                { title: 'Computational', content: data.computationalSkills },
+                { title: 'In Vitro', content: data.labSkills },
+                { title: 'In Vivo', content: data.invivo },
+                { title: 'Other', content: data.otherSkills }
+            ].filter(section => section.content);
+            
+            if (skillsSections.length > 0) {
+                checkPageBreak(25);
+                currentY = addText('TECHNICAL SKILLS', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                
+                skillsSections.forEach(section => {
+                    checkPageBreak(10);
+                    const skillText = `${section.title}: ${section.content}`;
+                    currentY = addText(skillText, margin, currentY, {
+                        fontSize: 10,
+                        lineHeight: 5
+                    });
+                    currentY += 3;
+                });
+                currentY += 5;
+            }
+            
+            // Publications
+            if (data.publications) {
+                checkPageBreak(25);
+                currentY = addText('SELECTED PUBLICATIONS', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                
+                const publications = data.publications.split('\n').map(pub => pub.trim()).filter(pub => pub);
+                publications.forEach((pub, index) => {
+                    checkPageBreak(15);
+                    currentY = addText(`${index + 1}. ${pub}`, margin, currentY, {
+                        fontSize: 10,
+                        lineHeight: 5
+                    });
+                    currentY += 3;
+                });
+                
+                if (data.publicationsLink) {
+                    currentY += 2;
+                    currentY = addText(`Complete publication list: ${data.publicationsLink}`, margin, currentY, {
+                        fontSize: 9,
+                        fontStyle: 'italic'
+                    });
+                }
+                currentY += 8;
+            }
+            
+            // Presentations & Awards
+            if (data.presentations || data.awards) {
+                checkPageBreak(25);
+                currentY = addText('PRESENTATIONS & AWARDS', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                
+                if (data.presentations) {
+                    currentY = addText('Selected Presentations:', margin, currentY, {
+                        fontSize: 10,
+                        fontStyle: 'bold'
+                    });
+                    currentY += 2;
+                    
+                    const presentations = data.presentations.split('\n').map(pres => pres.trim()).filter(pres => pres);
+                    presentations.forEach(pres => {
+                        checkPageBreak(8);
+                        currentY = addText('• ' + pres, margin + 5, currentY, {
+                            fontSize: 10,
+                            lineHeight: 4
+                        });
+                    });
+                    currentY += 5;
+                }
+                
+                if (data.awards) {
+                    currentY = addText('Awards & Honors:', margin, currentY, {
+                        fontSize: 10,
+                        fontStyle: 'bold'
+                    });
+                    currentY += 2;
+                    currentY = addText(data.awards, margin + 5, currentY, {
+                        fontSize: 10,
+                        lineHeight: 5
+                    });
+                    currentY += 8;
+                }
+            }
+            
+            // Certifications
+            if (data.certifications) {
+                checkPageBreak(20);
+                currentY = addText('CERTIFICATIONS', margin, currentY, {
+                    fontSize: 12,
+                    fontStyle: 'bold'
+                });
+                currentY += 5;
+                currentY = addText(data.certifications, margin, currentY, {
+                    fontSize: 10,
+                    lineHeight: 5
+                });
+            }
+            
+            // Generate filename
+            const fileName = data.fullName ? 
+                `${data.fullName.replace(/[^a-zA-Z0-9]/g, '_')}_Resume.pdf` : 
+                'Resume.pdf';
+            
+            // Save the PDF
+            doc.save(fileName);
+            
+            this.showNotification(`PDF downloaded successfully as ${fileName}!`, 'success');
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            this.showNotification('Error generating PDF. Falling back to print option.', 'error');
+            this.fallbackToPrint();
+        }
+    }
+    
+    fallbackToPrint() {
         const resumeContent = document.getElementById('resume-preview');
         
-        if (!resumeContent.innerHTML.includes('Fill out the form')) {
-            // Create a new window for printing
-            const printWindow = window.open('', '', 'height=800,width=1200');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Resume</title>
-                    <style>
-                        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
-                        .resume-preview { max-width: 800px; margin: 0 auto; }
-                        .resume-header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 25px; }
-                        .resume-name { font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; }
-                        .resume-contact { font-size: 1rem; color: #666; margin-bottom: 5px; }
-                        .resume-section { margin-bottom: 25px; }
-                        .resume-section h3 { font-size: 1.3rem; font-weight: 700; color: #3b82f6; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-                        .job-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-                        .job-title { font-weight: 700; font-size: 1.1rem; }
-                        .job-company { font-style: italic; color: #666; margin-top: 2px; }
-                        .job-dates { font-size: 0.9rem; color: #666; }
-                        .job-responsibilities ul { margin: 0; padding-left: 20px; }
-                        .job-responsibilities li { margin-bottom: 4px; color: #444; }
-                        .competency-tag, .skill-tag { background: #f0f2f5; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; color: #3b82f6; border: 1px solid #e1e8ed; margin: 2px; display: inline-block; }
-                        .skill-category { margin-bottom: 12px; line-height: 1.5; }
-                        .skill-category strong { color: #333; margin-right: 8px; }
-                        @media print { body { margin: 0; } .resume-preview { box-shadow: none; border: none; } }
-                    </style>
-                </head>
-                <body>
-                    <div class="resume-preview">${resumeContent.innerHTML}</div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            
-            // Wait for content to load, then print
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
-            
-            this.showNotification('Resume is being prepared for download. Use "Save as PDF" in the print dialog.', 'info');
-        } else {
-            this.showNotification('Please generate a resume first before downloading.', 'error');
-        }
+        // Create a new window for printing
+        const printWindow = window.open('', '', 'height=800,width=1200');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Resume</title>
+                <style>
+                    body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
+                    .resume-preview { max-width: 800px; margin: 0 auto; }
+                    .resume-header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 25px; }
+                    .resume-name { font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; }
+                    .resume-contact { font-size: 1rem; color: #666; margin-bottom: 5px; }
+                    .resume-section { margin-bottom: 25px; }
+                    .resume-section h3 { font-size: 1.3rem; font-weight: 700; color: #3b82f6; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+                    .job-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+                    .job-title { font-weight: 700; font-size: 1.1rem; }
+                    .job-company { font-style: italic; color: #666; margin-top: 2px; }
+                    .job-dates { font-size: 0.9rem; color: #666; }
+                    .job-responsibilities ul { margin: 0; padding-left: 20px; }
+                    .job-responsibilities li { margin-bottom: 4px; color: #444; }
+                    .competency-tag, .skill-tag { background: #f0f2f5; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; color: #3b82f6; border: 1px solid #e1e8ed; margin: 2px; display: inline-block; }
+                    .skill-category { margin-bottom: 12px; line-height: 1.5; }
+                    .skill-category strong { color: #333; margin-right: 8px; }
+                    @media print { body { margin: 0; } .resume-preview { box-shadow: none; border: none; } }
+                </style>
+            </head>
+            <body>
+                <div class="resume-preview">${resumeContent.innerHTML}</div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        
+        // Wait for content to load, then print
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+        
+        this.showNotification('Resume is being prepared for download. Use "Save as PDF" in the print dialog.', 'info');
     }
 
     printResume() {
-        window.print();
+        const resumeContent = document.getElementById('resume-preview');
+        
+        if (resumeContent.innerHTML.includes('Fill out the form')) {
+            this.showNotification('Please generate a resume first before printing.', 'error');
+            return;
+        }
+        
+        this.fallbackToPrint();
     }
 
     saveToLocalStorage() {
@@ -785,7 +1162,405 @@ class ResumeBuilder {
 
     // Inline editing methods
     setupInlineEditing() {
-        // This will be set up after resume is generated
+        // Set up event delegation for dynamically added content
+        const preview = document.getElementById('resume-preview');
+        
+        // Add CSS for editing indicators
+        this.addEditingStyles();
+        
+        // Listen for clicks on editable elements when edit mode is active
+        preview.addEventListener('click', (e) => {
+            if (this.editMode && this.isEditableElement(e.target)) {
+                this.startEditing(e.target);
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        
+        // Listen for clicks outside to save changes
+        document.addEventListener('click', (e) => {
+            if (this.editMode && !preview.contains(e.target)) {
+                this.finishAllEditing();
+            }
+        });
+    }
+    
+    addEditingStyles() {
+        if (document.getElementById('inline-editing-styles')) return;
+        
+        const styles = document.createElement('style');
+        styles.id = 'inline-editing-styles';
+        styles.textContent = `
+            /* Inline editing styles */
+            .resume-preview[data-edit-mode="true"] .editable {
+                border: 2px dashed transparent;
+                border-radius: 4px;
+                padding: 2px 4px;
+                margin: -2px -4px;
+                transition: all 0.2s ease;
+                cursor: pointer;
+                position: relative;
+            }
+            
+            .resume-preview[data-edit-mode="true"] .editable:hover {
+                border-color: #3b82f6;
+                background-color: rgba(59, 130, 246, 0.05);
+            }
+            
+            .resume-preview[data-edit-mode="true"] .editable.editing {
+                border-color: #10b981;
+                background-color: rgba(16, 185, 129, 0.1);
+                box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            }
+            
+            .resume-preview[data-edit-mode="true"] .editable:hover::after {
+                content: "✏️ Click to edit";
+                position: absolute;
+                top: -25px;
+                left: 0;
+                background: #374151;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                white-space: nowrap;
+                z-index: 1000;
+                opacity: 0.9;
+            }
+            
+            .editing-toolbar {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: white;
+                border: 1px solid #e1e8ed;
+                border-radius: 8px;
+                padding: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1001;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                font-size: 12px;
+            }
+            
+            .editing-toolbar button {
+                padding: 4px 8px;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                background: white;
+                cursor: pointer;
+                font-size: 11px;
+                transition: all 0.2s ease;
+            }
+            
+            .editing-toolbar button:hover {
+                background: #f1f5f9;
+                border-color: #3b82f6;
+            }
+            
+            .edit-field {
+                border: 2px solid #10b981;
+                border-radius: 4px;
+                padding: 4px 6px;
+                font-family: inherit;
+                font-size: inherit;
+                font-weight: inherit;
+                background: white;
+                box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+                outline: none;
+                min-width: 100px;
+                resize: both;
+            }
+            
+            .edit-field:focus {
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+            }
+            
+            .resume-preview[data-edit-mode="false"] .editable {
+                border: none !important;
+                background: transparent !important;
+                cursor: default;
+            }
+            
+            .resume-preview[data-edit-mode="false"] .editable::after {
+                display: none !important;
+            }
+        `;
+        
+        document.head.appendChild(styles);
+    }
+    
+    isEditableElement(element) {
+        const editableSelectors = [
+            '.resume-name',
+            '.resume-contact',
+            '.job-title',
+            '.job-company',
+            '.job-responsibilities li',
+            '.degree-info',
+            '.school-info',
+            '.skill-category',
+            '.resume-section p',
+            '.competency-tag',
+            '.publications-list li',
+            '.presentations-list li'
+        ];
+        
+        return editableSelectors.some(selector => {
+            return element.matches(selector) || element.closest(selector);
+        });
+    }
+    
+    startEditing(element) {
+        // Prevent multiple edits
+        if (element.classList.contains('editing') || element.querySelector('.edit-field')) {
+            return;
+        }
+        
+        // Finish any other editing first
+        this.finishAllEditing();
+        
+        element.classList.add('editing');
+        
+        const originalText = element.textContent.trim();
+        const isMultiline = originalText.length > 100 || originalText.includes('\n');
+        
+        // Create editing field
+        const editField = document.createElement(isMultiline ? 'textarea' : 'input');
+        editField.className = 'edit-field';
+        editField.value = originalText;
+        
+        if (isMultiline) {
+            editField.rows = Math.max(2, Math.ceil(originalText.length / 80));
+            editField.style.width = '100%';
+            editField.style.minHeight = '60px';
+        } else {
+            editField.style.width = Math.max(150, originalText.length * 8) + 'px';
+        }
+        
+        // Store original content and element reference
+        editField.originalText = originalText;
+        editField.originalElement = element;
+        
+        // Replace element content
+        element.innerHTML = '';
+        element.appendChild(editField);
+        
+        // Focus and select text
+        editField.focus();
+        editField.select();
+        
+        // Show editing toolbar
+        this.showEditingToolbar(editField);
+        
+        // Handle save/cancel events
+        editField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isMultiline) {
+                e.preventDefault();
+                this.saveEdit(editField);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.cancelEdit(editField);
+            } else if (e.key === 'Enter' && e.ctrlKey && isMultiline) {
+                e.preventDefault();
+                this.saveEdit(editField);
+            }
+        });
+        
+        editField.addEventListener('blur', () => {
+            // Small delay to allow toolbar button clicks
+            setTimeout(() => {
+                if (document.activeElement !== editField && !this.isToolbarFocused()) {
+                    this.saveEdit(editField);
+                }
+            }, 100);
+        });
+    }
+    
+    showEditingToolbar(editField) {
+        // Remove existing toolbar
+        this.hideEditingToolbar();
+        
+        const toolbar = document.createElement('div');
+        toolbar.className = 'editing-toolbar';
+        toolbar.innerHTML = `
+            <span>Editing:</span>
+            <button type="button" data-action="save">
+                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Save
+            </button>
+            <button type="button" data-action="cancel">
+                <i data-lucide="x" style="width: 14px; height: 14px;"></i> Cancel
+            </button>
+            <span style="font-size: 10px; color: #6b7280;">Enter to save, Esc to cancel</span>
+        `;
+        
+        // Handle toolbar actions
+        toolbar.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (action === 'save') {
+                this.saveEdit(editField);
+            } else if (action === 'cancel') {
+                this.cancelEdit(editField);
+            }
+        });
+        
+        document.body.appendChild(toolbar);
+        
+        // Initialize icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+    
+    hideEditingToolbar() {
+        const toolbar = document.querySelector('.editing-toolbar');
+        if (toolbar) {
+            toolbar.remove();
+        }
+    }
+    
+    isToolbarFocused() {
+        const toolbar = document.querySelector('.editing-toolbar');
+        return toolbar && toolbar.contains(document.activeElement);
+    }
+    
+    saveEdit(editField) {
+        const newText = editField.value.trim();
+        const element = editField.originalElement;
+        
+        if (newText !== editField.originalText) {
+            // Update the element content
+            element.innerHTML = newText;
+            element.classList.remove('editing');
+            
+            // Update the corresponding form field
+            this.updateFormField(element, newText);
+            
+            // Update the stored form data
+            this.collectFormData();
+            
+            this.showNotification('Changes saved successfully!', 'success');
+        } else {
+            // No changes, just restore
+            element.innerHTML = editField.originalText;
+            element.classList.remove('editing');
+        }
+        
+        this.hideEditingToolbar();
+    }
+    
+    cancelEdit(editField) {
+        const element = editField.originalElement;
+        
+        // Restore original content
+        element.innerHTML = editField.originalText;
+        element.classList.remove('editing');
+        
+        this.hideEditingToolbar();
+        this.showNotification('Edit cancelled', 'info');
+    }
+    
+    finishAllEditing() {
+        const editingElements = document.querySelectorAll('.editing');
+        editingElements.forEach(element => {
+            const editField = element.querySelector('.edit-field');
+            if (editField) {
+                this.saveEdit(editField);
+            }
+        });
+    }
+    
+    updateFormField(element, newText) {
+        // Map resume elements to form fields
+        const fieldMappings = {
+            'resume-name': 'fullName',
+            'job-title': 'jobTitle',
+            'job-company': 'company',
+            'degree-info': 'degree',
+            'school-info': 'school'
+        };
+        
+        // Find the field mapping
+        let fieldId = null;
+        let elementIndex = -1;
+        
+        for (const [className, baseFieldId] of Object.entries(fieldMappings)) {
+            if (element.classList.contains(className)) {
+                fieldId = baseFieldId;
+                
+                // For repeating fields (experience, education), find the index
+                if (['jobTitle', 'company', 'degree', 'school'].includes(baseFieldId)) {
+                    elementIndex = this.findElementIndex(element, `.${className}`);
+                    fieldId = `${baseFieldId}${elementIndex + 1}`;
+                }
+                break;
+            }
+        }
+        
+        // Handle special cases
+        if (element.classList.contains('resume-contact')) {
+            // Determine which contact field this is
+            const contactElements = document.querySelectorAll('.resume-contact');
+            const index = Array.from(contactElements).indexOf(element);
+            const contactFields = ['email', 'phone', 'location', 'linkedin', 'website'];
+            fieldId = contactFields[index] || null;
+        } else if (element.classList.contains('job-responsibilities')) {
+            const parentJob = element.closest('.resume-job');
+            if (parentJob) {
+                const jobIndex = this.findElementIndex(parentJob, '.resume-job');
+                fieldId = `responsibilities${jobIndex + 1}`;
+            }
+        } else if (element.closest('.resume-section')) {
+            const section = element.closest('.resume-section');
+            const sectionTitle = section.querySelector('h3')?.textContent?.toLowerCase();
+            
+            if (sectionTitle?.includes('summary')) {
+                fieldId = 'summary';
+            } else if (sectionTitle?.includes('competencies')) {
+                fieldId = 'coreCompetencies';
+            } else if (sectionTitle?.includes('skills')) {
+                // Determine which skill category
+                if (element.textContent.toLowerCase().includes('computational')) {
+                    fieldId = 'computationalSkills';
+                } else if (element.textContent.toLowerCase().includes('vitro')) {
+                    fieldId = 'labSkills';
+                } else if (element.textContent.toLowerCase().includes('vivo')) {
+                    fieldId = 'invivo';
+                } else {
+                    fieldId = 'otherSkills';
+                }
+            } else if (sectionTitle?.includes('publications')) {
+                fieldId = 'publications';
+            } else if (sectionTitle?.includes('presentations')) {
+                fieldId = 'presentations';
+            } else if (sectionTitle?.includes('awards')) {
+                fieldId = 'awards';
+            } else if (sectionTitle?.includes('certifications')) {
+                fieldId = 'certifications';
+            }
+        }
+        
+        // Update the form field if found
+        if (fieldId) {
+            const formField = document.getElementById(fieldId);
+            if (formField) {
+                if (fieldId.includes('Skills') || fieldId === 'coreCompetencies') {
+                    // For skills, extract just the content after the colon
+                    const colonIndex = newText.indexOf(':');
+                    if (colonIndex !== -1) {
+                        formField.value = newText.substring(colonIndex + 1).trim();
+                    } else {
+                        formField.value = newText;
+                    }
+                } else {
+                    formField.value = newText;
+                }
+                
+                // Trigger input event to update preview
+                formField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
     }
 
     toggleEditMode() {
@@ -816,22 +1591,14 @@ class ResumeBuilder {
 
     makeElementsEditable() {
         const preview = document.getElementById('resume-preview');
-        const editableElements = preview.querySelectorAll('.resume-name, .resume-contact, .job-title, .job-company, .degree-info, .school-info, .skill-category, p, li');
+        const editableElements = preview.querySelectorAll(
+            '.resume-name, .resume-contact, .job-title, .job-company, .job-responsibilities li, ' +
+            '.degree-info, .school-info, .skill-category, .resume-section p, ' +
+            '.competency-tag, .publications-list li, .presentations-list li'
+        );
         
         editableElements.forEach(element => {
             element.classList.add('editable');
-            element.contentEditable = true;
-            
-            element.addEventListener('blur', (e) => {
-                this.handleInlineEdit(e.target);
-            });
-            
-            element.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    e.target.blur();
-                }
-            });
         });
     }
 
@@ -840,34 +1607,15 @@ class ResumeBuilder {
         const editableElements = preview.querySelectorAll('.editable');
         
         editableElements.forEach(element => {
-            element.classList.remove('editable');
-            element.contentEditable = false;
+            element.classList.remove('editable', 'editing');
         });
+        
+        // Finish any active editing
+        this.finishAllEditing();
+        this.hideEditingToolbar();
     }
 
-    handleInlineEdit(element) {
-        // Update the form data based on the edited element
-        const newText = element.textContent.trim();
-        
-        // Identify which field was edited and update accordingly
-        if (element.classList.contains('resume-name')) {
-            document.getElementById('fullName').value = newText;
-        } else if (element.classList.contains('job-title')) {
-            // Find the corresponding job title field
-            const jobIndex = this.findElementIndex(element, '.job-title');
-            if (jobIndex !== -1) {
-                document.getElementById(`jobTitle${jobIndex + 1}`).value = newText;
-            }
-        }
-        // Add more field mappings as needed
-        
-        this.showNotification('Resume updated! Changes saved automatically.', 'success');
-    }
 
-    findElementIndex(element, selector) {
-        const elements = document.querySelectorAll(selector);
-        return Array.from(elements).indexOf(element);
-    }
 
     // Import methods
     importFromLinkedIn() {
