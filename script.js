@@ -58,14 +58,49 @@ class ResumeBuilder {
         });
 
         // File upload
-        document.getElementById('file-upload').addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files[0]);
+        const fileInput = document.getElementById('file-upload');
+        const fileLabel = document.getElementById('file-input-label');
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                this.handleFileUpload(e.target.files[0]);
+            }
         });
+        
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, this.preventDefaults, false);
+            document.body.addEventListener(eventName, this.preventDefaults, false);
+        });
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, () => {
+                fileLabel.classList.add('dragover');
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, () => {
+                fileLabel.classList.remove('dragover');
+            }, false);
+        });
+        
+        fileLabel.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this.handleFileUpload(files[0]);
+            }
+        }, false);
 
         // Manual entry toggle
         document.getElementById('manual-entry').addEventListener('click', () => {
             this.setImportMode('manual');
         });
+    }
+    
+    preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     setupFormValidation() {
@@ -281,13 +316,15 @@ class ResumeBuilder {
     }
 
     generateResume() {
-        // Validate form
-        if (!this.validateForm()) {
-            this.showNotification('Please fill in all required fields correctly.', 'error');
+        // Collect data first
+        const data = this.collectFormData();
+        
+        // Basic validation - only check for name and email
+        if (!data.fullName || !data.email) {
+            this.showNotification('Please enter your name and email before generating the resume.', 'error');
             return;
         }
 
-        const data = this.collectFormData();
         this.renderResume(data);
         this.saveToLocalStorage();
         this.showNotification('Resume generated successfully!', 'success');
@@ -298,16 +335,26 @@ class ResumeBuilder {
     }
 
     validateForm() {
-        const requiredFields = document.querySelectorAll('input[required], select[required]');
-        let isValid = true;
+        // Simplified validation - only require name and email
+        const fullName = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
         
-        requiredFields.forEach(field => {
-            if (!this.validateField(field)) {
-                isValid = false;
-            }
-        });
+        if (!fullName) {
+            this.showFieldError(document.getElementById('fullName'), 'Name is required');
+            return false;
+        }
         
-        return isValid;
+        if (!email) {
+            this.showFieldError(document.getElementById('email'), 'Email is required');
+            return false;
+        }
+        
+        if (!this.isValidEmail(email)) {
+            this.showFieldError(document.getElementById('email'), 'Please enter a valid email address');
+            return false;
+        }
+        
+        return true;
     }
 
     renderResume(data) {
@@ -2275,24 +2322,42 @@ class ResumeBuilder {
         
         try {
             statusDiv.textContent = 'Processing file...';
-            statusDiv.className = 'file-upload-status';
+            statusDiv.className = 'file-upload-status processing';
             statusDiv.style.display = 'block';
             
+            let extractedText = '';
+            
             if (file.type === 'application/pdf') {
-                await this.parsePDF(file);
+                extractedText = await this.parsePDF(file);
             } else if (file.type.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                await this.parseWord(file);
+                extractedText = await this.parseWord(file);
+            } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                extractedText = await this.parseTextFile(file);
             } else {
-                throw new Error('Unsupported file format. Please upload PDF, DOC, or DOCX files.');
+                throw new Error('Unsupported file format. Please upload PDF, DOC, DOCX, or TXT files.');
             }
             
-            statusDiv.textContent = 'File uploaded successfully! Review and edit the extracted information.';
+            if (!extractedText || extractedText.trim().length < 50) {
+                throw new Error('Could not extract sufficient text from the file. Please ensure the file contains readable text.');
+            }
+            
+            // Parse the extracted text and populate form
+            this.parseResumeText(extractedText);
+            
+            statusDiv.textContent = `File uploaded successfully! Extracted ${extractedText.length} characters. Review and edit the populated information.`;
             statusDiv.className = 'file-upload-status success';
             
+            // Update preview
+            this.updatePreview();
+            
+            this.showNotification('Resume data extracted and imported successfully!', 'success');
+            
         } catch (error) {
+            console.error('File upload error:', error);
             statusDiv.textContent = `Error: ${error.message}`;
             statusDiv.className = 'file-upload-status error';
             statusDiv.style.display = 'block';
+            this.showNotification(`File parsing failed: ${error.message}`, 'error');
         }
     }
 
@@ -2301,23 +2366,494 @@ class ResumeBuilder {
         if (!statusDiv) {
             statusDiv = document.createElement('div');
             statusDiv.className = 'file-upload-status';
-            document.querySelector('.import-section').appendChild(statusDiv);
+            const importSection = document.querySelector('.import-section');
+            if (importSection) {
+                importSection.appendChild(statusDiv);
+            } else {
+                document.body.appendChild(statusDiv);
+            }
         }
         return statusDiv;
     }
 
     async parsePDF(file) {
-        // In a real implementation, you would use PDF.js or similar library
-        // For now, we'll show a placeholder message
-        this.showNotification('PDF parsing coming soon! For now, please manually enter your information.', 'info');
-        throw new Error('PDF parsing not yet implemented. Please try manual entry or use the LinkedIn import.');
+        try {
+            // Check if PDF.js is available
+            if (typeof pdfjsLib === 'undefined') {
+                // Load PDF.js if not available
+                await this.loadPDFJS();
+            }
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            let fullText = '';
+            
+            // Extract text from all pages
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+            
+            return fullText;
+            
+        } catch (error) {
+            console.error('PDF parsing error:', error);
+            throw new Error('Failed to parse PDF file. Please ensure the PDF contains selectable text.');
+        }
+    }
+
+    async loadPDFJS() {
+        return new Promise((resolve, reject) => {
+            // Load PDF.js from CDN
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.onload = () => {
+                // Set worker source
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                resolve();
+            };
+            script.onerror = () => reject(new Error('Failed to load PDF.js library'));
+            document.head.appendChild(script);
+        });
     }
 
     async parseWord(file) {
-        // In a real implementation, you would use mammoth.js or similar library
-        // For now, we'll show a placeholder message
-        this.showNotification('Word document parsing coming soon! For now, please manually enter your information.', 'info');
-        throw new Error('Word document parsing not yet implemented. Please try manual entry or use the LinkedIn import.');
+        try {
+            // For Word documents, we'll use a simpler approach
+            // Note: Full DOCX parsing requires complex libraries
+            // This is a basic implementation for demonstration
+            
+            if (file.name.endsWith('.docx')) {
+                return await this.parseDocx(file);
+            } else {
+                throw new Error('DOC files are not supported. Please save as DOCX or PDF format.');
+            }
+            
+        } catch (error) {
+            console.error('Word parsing error:', error);
+            throw new Error('Failed to parse Word document. Please save as PDF or plain text format.');
+        }
+    }
+
+    async parseDocx(file) {
+        try {
+            // Load mammoth.js for DOCX parsing
+            if (typeof mammoth === 'undefined') {
+                await this.loadMammoth();
+            }
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({arrayBuffer: arrayBuffer});
+            
+            if (result.messages.length > 0) {
+                console.warn('DOCX parsing warnings:', result.messages);
+            }
+            
+            return result.value;
+            
+        } catch (error) {
+            console.error('DOCX parsing error:', error);
+            throw new Error('Failed to parse DOCX file. Please ensure the file is not corrupted.');
+        }
+    }
+
+    async loadMammoth() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Mammoth.js library'));
+            document.head.appendChild(script);
+        });
+    }
+
+    async parseTextFile(file) {
+        try {
+            const text = await file.text();
+            return text;
+        } catch (error) {
+            console.error('Text file parsing error:', error);
+            throw new Error('Failed to read text file.');
+        }
+    }
+
+    parseResumeText(text) {
+        try {
+            // Clean and normalize the text
+            const cleanText = this.cleanResumeText(text);
+            
+            // Extract different sections
+            const extractedData = {
+                personalInfo: this.extractPersonalInfo(cleanText),
+                summary: this.extractSummary(cleanText),
+                experience: this.extractExperience(cleanText),
+                education: this.extractEducation(cleanText),
+                skills: this.extractSkills(cleanText),
+                publications: this.extractPublications(cleanText),
+                certifications: this.extractCertifications(cleanText)
+            };
+            
+            // Populate the form with extracted data
+            this.populateFormWithExtractedData(extractedData);
+            
+        } catch (error) {
+            console.error('Resume parsing error:', error);
+            throw new Error('Failed to parse resume content. Please check the file format and try again.');
+        }
+    }
+
+    cleanResumeText(text) {
+        return text
+            .replace(/\r\n/g, '\n')  // Normalize line endings
+            .replace(/\s+/g, ' ')     // Normalize whitespace
+            .replace(/\n\s*\n/g, '\n\n') // Normalize paragraph breaks
+            .trim();
+    }
+
+    extractPersonalInfo(text) {
+        const info = {
+            name: '',
+            email: '',
+            phone: '',
+            location: '',
+            linkedin: '',
+            website: ''
+        };
+        
+        // Extract email
+        const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+        if (emailMatch) {
+            info.email = emailMatch[0];
+        }
+        
+        // Extract phone number
+        const phoneMatch = text.match(/(\+?1?[-\s]?)?\(?([0-9]{3})\)?[-\s]?([0-9]{3})[-\s]?([0-9]{4})/g);
+        if (phoneMatch) {
+            info.phone = phoneMatch[0];
+        }
+        
+        // Extract LinkedIn
+        const linkedinMatch = text.match(/linkedin\.com\/in\/[a-zA-Z0-9-]+/gi);
+        if (linkedinMatch) {
+            info.linkedin = 'https://' + linkedinMatch[0];
+        }
+        
+        // Extract website/portfolio
+        const websiteMatch = text.match(/(?:https?:\/\/)?(?:www\.)?((?!linkedin|email)[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/gi);
+        if (websiteMatch) {
+            info.website = websiteMatch[0].startsWith('http') ? websiteMatch[0] : 'https://' + websiteMatch[0];
+        }
+        
+        // Extract name (assume it's in the first few lines)
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+            const line = lines[i];
+            // Skip lines that look like contact info
+            if (!line.includes('@') && !line.match(/\d{3}/) && line.length > 5 && line.length < 50) {
+                // Check if it looks like a name (2-4 words, no special chars except spaces and periods)
+                if (/^[a-zA-Z\s\.]{2,50}$/.test(line) && line.split(' ').length >= 2 && line.split(' ').length <= 4) {
+                    info.name = line;
+                    break;
+                }
+            }
+        }
+        
+        // Extract location (look for city, state patterns)
+        const locationMatch = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2}|[A-Z][a-z]+)/g);
+        if (locationMatch) {
+            info.location = locationMatch[0];
+        }
+        
+        return info;
+    }
+
+    extractSummary(text) {
+        // Look for summary/objective/profile sections
+        const summaryPatterns = [
+            /(?:summary|objective|profile|about)\s*:?\s*([\s\S]{50,500}?)(?:\n\s*\n|\n\s*[A-Z])/gi,
+            /^([\s\S]{100,400}?)(?:\n\s*\n.*(?:experience|education|skills))/mi
+        ];
+        
+        for (const pattern of summaryPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                return match[1].trim().replace(/\s+/g, ' ');
+            }
+        }
+        
+        return '';
+    }
+
+    extractExperience(text) {
+        const experiences = [];
+        
+        // Look for experience section
+        const expSectionMatch = text.match(/(?:experience|employment|work\s+history|professional\s+experience)[\s\S]*?(?=(?:education|skills|publications|certifications|$))/gi);
+        
+        if (!expSectionMatch) return experiences;
+        
+        const expSection = expSectionMatch[0];
+        
+        // Split by job entries (look for patterns that suggest new jobs)
+        const jobBlocks = expSection.split(/\n(?=\s*[A-Z][^\n]*(?:\n[A-Z][^\n]*)?\n\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}))/g);
+        
+        jobBlocks.forEach(block => {
+            const exp = this.parseExperienceBlock(block.trim());
+            if (exp.jobTitle || exp.company) {
+                experiences.push(exp);
+            }
+        });
+        
+        return experiences;
+    }
+
+    parseExperienceBlock(block) {
+        const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+        const exp = {
+            jobTitle: '',
+            company: '',
+            startDate: '',
+            endDate: '',
+            current: false,
+            responsibilities: ''
+        };
+        
+        if (lines.length === 0) return exp;
+        
+        // First line is usually job title
+        exp.jobTitle = lines[0];
+        
+        // Look for company and dates
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Check for date patterns
+            const dateMatch = line.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})[\s-]*\d{0,4}[\s-]*(?:to|[-–])[\s-]*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi);
+            if (dateMatch) {
+                const dates = dateMatch[0].split(/\s*(?:to|[-–])\s*/);
+                exp.startDate = this.parseDateString(dates[0]);
+                if (dates[1] && !dates[1].match(/present|current/i)) {
+                    exp.endDate = this.parseDateString(dates[1]);
+                } else {
+                    exp.current = true;
+                }
+                continue;
+            }
+            
+            // If no company found yet and line doesn't look like responsibilities
+            if (!exp.company && !line.startsWith('•') && !line.startsWith('-') && line.length < 100) {
+                exp.company = line;
+                continue;
+            }
+            
+            // Everything else is responsibilities
+            if (exp.responsibilities) {
+                exp.responsibilities += '\n' + line;
+            } else {
+                exp.responsibilities = line;
+            }
+        }
+        
+        return exp;
+    }
+
+    extractEducation(text) {
+        const education = [];
+        
+        // Look for education section
+        const eduSectionMatch = text.match(/(?:education|academic|qualifications)[\s\S]*?(?=(?:experience|skills|publications|certifications|$))/gi);
+        
+        if (!eduSectionMatch) return education;
+        
+        const eduSection = eduSectionMatch[0];
+        
+        // Split by degree entries
+        const degreeBlocks = eduSection.split(/\n(?=\s*(?:PhD|Ph\.D|Doctorate|Master|Bachelor|MBA|MS|BS|MA|BA|MD|JD))/gi);
+        
+        degreeBlocks.forEach(block => {
+            const edu = this.parseEducationBlock(block.trim());
+            if (edu.degree || edu.school) {
+                education.push(edu);
+            }
+        });
+        
+        return education;
+    }
+
+    parseEducationBlock(block) {
+        const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+        const edu = {
+            degree: '',
+            field: '',
+            school: '',
+            year: ''
+        };
+        
+        if (lines.length === 0) return edu;
+        
+        // Extract degree from first line
+        const firstLine = lines[0];
+        if (/PhD|Ph\.D|Doctorate|Master|Bachelor|MBA|MS|BS|MA|BA|MD|JD/i.test(firstLine)) {
+            edu.degree = firstLine;
+            
+            // Extract field if present
+            const fieldMatch = firstLine.match(/(?:in|of)\s+([^,\n]+)/i);
+            if (fieldMatch) {
+                edu.field = fieldMatch[1].trim();
+                edu.degree = firstLine.replace(/\s+(?:in|of)\s+[^,\n]+/i, '').trim();
+            }
+        }
+        
+        // Look for school name
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line.match(/\d{4}/) && line.length > 5) {
+                edu.school = line;
+                break;
+            }
+        }
+        
+        // Look for graduation year
+        const yearMatch = block.match(/(19|20)\d{2}/);
+        if (yearMatch) {
+            edu.year = yearMatch[0];
+        }
+        
+        return edu;
+    }
+
+    extractSkills(text) {
+        // Look for skills section
+        const skillsMatch = text.match(/(?:skills|competencies|expertise|technologies)[\s\S]*?(?=(?:experience|education|publications|certifications|$))/gi);
+        
+        if (!skillsMatch) return '';
+        
+        const skillsSection = skillsMatch[0];
+        
+        // Extract skills (remove section header)
+        let skills = skillsSection.replace(/^[^\n]*(?:skills|competencies|expertise|technologies)[^\n]*/i, '').trim();
+        
+        // Clean up formatting
+        skills = skills
+            .replace(/[•\-]/g, '')
+            .replace(/\n/g, ', ')
+            .replace(/,\s*,/g, ',')
+            .replace(/^,\s*/, '')
+            .replace(/,\s*$/, '');
+        
+        return skills;
+    }
+
+    extractPublications(text) {
+        // Look for publications section
+        const pubMatch = text.match(/(?:publications|papers|articles)[\s\S]*?(?=(?:experience|education|skills|certifications|$))/gi);
+        
+        if (!pubMatch) return '';
+        
+        return pubMatch[0].replace(/^[^\n]*(?:publications|papers|articles)[^\n]*/i, '').trim();
+    }
+
+    extractCertifications(text) {
+        // Look for certifications section
+        const certMatch = text.match(/(?:certifications|certificates|licenses)[\s\S]*?(?=(?:experience|education|skills|publications|$))/gi);
+        
+        if (!certMatch) return '';
+        
+        return certMatch[0].replace(/^[^\n]*(?:certifications|certificates|licenses)[^\n]*/i, '').trim();
+    }
+
+    populateFormWithExtractedData(data) {
+        // Populate personal information
+        if (data.personalInfo.name) {
+            document.getElementById('fullName').value = data.personalInfo.name;
+        }
+        if (data.personalInfo.email) {
+            document.getElementById('email').value = data.personalInfo.email;
+        }
+        if (data.personalInfo.phone) {
+            document.getElementById('phone').value = data.personalInfo.phone;
+        }
+        if (data.personalInfo.location) {
+            document.getElementById('location').value = data.personalInfo.location;
+        }
+        if (data.personalInfo.linkedin) {
+            document.getElementById('linkedin').value = data.personalInfo.linkedin;
+        }
+        if (data.personalInfo.website) {
+            document.getElementById('website').value = data.personalInfo.website;
+        }
+        
+        // Populate summary
+        if (data.summary) {
+            document.getElementById('summary').value = data.summary;
+        }
+        
+        // Populate skills
+        if (data.skills) {
+            document.getElementById('coreCompetencies').value = data.skills;
+        }
+        
+        // Populate publications
+        if (data.publications) {
+            document.getElementById('publications').value = data.publications;
+        }
+        
+        // Populate certifications
+        if (data.certifications) {
+            document.getElementById('certifications').value = data.certifications;
+        }
+        
+        // Populate experience
+        data.experience.forEach((exp, index) => {
+            if (index >= this.experienceCount) {
+                this.addExperience();
+            }
+            
+            const expIndex = index + 1;
+            if (exp.jobTitle) {
+                document.getElementById(`jobTitle${expIndex}`).value = exp.jobTitle;
+            }
+            if (exp.company) {
+                document.getElementById(`company${expIndex}`).value = exp.company;
+            }
+            if (exp.startDate) {
+                document.getElementById(`startDate${expIndex}`).value = exp.startDate;
+            }
+            if (exp.endDate && !exp.current) {
+                document.getElementById(`endDate${expIndex}`).value = exp.endDate;
+            }
+            if (exp.current) {
+                document.getElementById(`current${expIndex}`).checked = true;
+                document.getElementById(`endDate${expIndex}`).disabled = true;
+            }
+            if (exp.responsibilities) {
+                document.getElementById(`responsibilities${expIndex}`).value = exp.responsibilities;
+            }
+        });
+        
+        // Populate education
+        data.education.forEach((edu, index) => {
+            if (index >= this.educationCount) {
+                this.addEducation();
+            }
+            
+            const eduIndex = index + 1;
+            if (edu.degree) {
+                document.getElementById(`degree${eduIndex}`).value = edu.degree;
+            }
+            if (edu.field) {
+                document.getElementById(`field${eduIndex}`).value = edu.field;
+            }
+            if (edu.school) {
+                document.getElementById(`school${eduIndex}`).value = edu.school;
+            }
+            if (edu.year) {
+                document.getElementById(`gradYear${eduIndex}`).value = edu.year;
+            }
+        });
     }
 
     setImportMode(mode) {

@@ -56,12 +56,18 @@
                             </div>
                             
                             <div class="import-option">
-                                <label for="file-upload" class="btn-import">
-                                    <i data-lucide="upload" class="icon"></i>
-                                    Upload Resume/CV
-                                    <input type="file" id="file-upload" accept=".pdf,.doc,.docx" style="display: none;">
-                                </label>
-                                <p class="import-help">Upload your existing resume or CV (PDF, DOC, DOCX)</p>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="file-upload" accept=".pdf,.doc,.docx,.txt" multiple>
+                                    <label for="file-upload" class="file-input-label" id="file-input-label">
+                                        <i data-lucide="upload" class="icon"></i>
+                                        <div>
+                                            <div><strong>Upload Resume/CV</strong></div>
+                                            <div class="file-input-instructions">Drag & drop or click to browse</div>
+                                            <div class="supported-formats">Supports: PDF, DOC, DOCX, TXT</div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p class="import-help">Upload your existing resume or CV for automatic data extraction</p>
                             </div>
                             
                             <div class="import-option">
