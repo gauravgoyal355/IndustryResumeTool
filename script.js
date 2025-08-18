@@ -2585,20 +2585,38 @@ class ResumeBuilder {
     }
     
     extractLinkedInExperience(text) {
+        console.log('Extracting LinkedIn experience from text:', text.substring(0, 200) + '...');
         const experiences = [];
         
         // Find the Experience section
         const expMatch = text.match(/Experience\s*([\s\S]*?)(?=Education|Skills|Publications|Languages|$)/gi);
-        if (!expMatch) return experiences;
+        if (!expMatch) {
+            console.log('No Experience section found in text');
+            return experiences;
+        }
         
         let expSection = expMatch[0].replace(/^Experience\s*/i, '').trim();
+        console.log('Found Experience section:', expSection.substring(0, 300) + '...');
         
         // Split by company names (look for patterns in LinkedIn format)
         const companyBlocks = this.splitLinkedInExperience(expSection);
+        console.log('Split into', companyBlocks.length, 'company blocks:', companyBlocks.map(block => block.substring(0, 50) + '...'));
         
-        companyBlocks.forEach(block => {
+        companyBlocks.forEach((block, index) => {
+            console.log(`Processing company block ${index + 1}:`, block.substring(0, 100) + '...');
             const jobs = this.parseLinkedInCompanyBlock(block);
+            console.log(`Extracted ${jobs.length} jobs from block ${index + 1}:`, jobs.map(job => `${job.jobTitle} at ${job.company}`));
             experiences.push(...jobs);
+        });
+        
+        console.log('Total experiences extracted:', experiences.length);
+        experiences.forEach((exp, i) => {
+            console.log(`Experience ${i + 1}:`, {
+                title: exp.jobTitle,
+                company: exp.company,
+                dates: `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}`,
+                responsibilities: exp.responsibilities ? exp.responsibilities.substring(0, 50) + '...' : 'None'
+            });
         });
         
         return experiences;
@@ -3198,6 +3216,8 @@ class ResumeBuilder {
     }
 
     populateFormWithExtractedData(data) {
+        console.log('Populating form with extracted data:', data); // Debug log
+        
         // Populate personal information
         if (data.personalInfo.name) {
             document.getElementById('fullName').value = data.personalInfo.name;
@@ -3238,54 +3258,135 @@ class ResumeBuilder {
             document.getElementById('certifications').value = data.certifications;
         }
         
-        // Populate experience
-        data.experience.forEach((exp, index) => {
-            if (index >= this.experienceCount) {
-                this.addExperience();
-            }
-            
-            const expIndex = index + 1;
-            if (exp.jobTitle) {
-                document.getElementById(`jobTitle${expIndex}`).value = exp.jobTitle;
-            }
-            if (exp.company) {
-                document.getElementById(`company${expIndex}`).value = exp.company;
-            }
-            if (exp.startDate) {
-                document.getElementById(`startDate${expIndex}`).value = exp.startDate;
-            }
-            if (exp.endDate && !exp.current) {
-                document.getElementById(`endDate${expIndex}`).value = exp.endDate;
-            }
-            if (exp.current) {
-                document.getElementById(`current${expIndex}`).checked = true;
-                document.getElementById(`endDate${expIndex}`).disabled = true;
-            }
-            if (exp.responsibilities) {
-                document.getElementById(`responsibilities${expIndex}`).value = exp.responsibilities;
-            }
-        });
+        // Populate experience - Enhanced logging
+        console.log('Processing experience data:', data.experience);
+        if (data.experience && data.experience.length > 0) {
+            data.experience.forEach((exp, index) => {
+                console.log(`Processing experience ${index + 1}:`, exp);
+                
+                // Add more experience fields if needed
+                while (index >= this.experienceCount) {
+                    console.log(`Adding experience field ${this.experienceCount + 1}`);
+                    this.addExperience();
+                }
+                
+                const expIndex = index + 1;
+                
+                if (exp.jobTitle) {
+                    const jobTitleField = document.getElementById(`jobTitle${expIndex}`);
+                    if (jobTitleField) {
+                        jobTitleField.value = exp.jobTitle;
+                        console.log(`Set job title ${expIndex}: ${exp.jobTitle}`);
+                    } else {
+                        console.error(`Job title field jobTitle${expIndex} not found`);
+                    }
+                }
+                
+                if (exp.company) {
+                    const companyField = document.getElementById(`company${expIndex}`);
+                    if (companyField) {
+                        companyField.value = exp.company;
+                        console.log(`Set company ${expIndex}: ${exp.company}`);
+                    } else {
+                        console.error(`Company field company${expIndex} not found`);
+                    }
+                }
+                
+                if (exp.startDate) {
+                    const startDateField = document.getElementById(`startDate${expIndex}`);
+                    if (startDateField) {
+                        startDateField.value = exp.startDate;
+                        console.log(`Set start date ${expIndex}: ${exp.startDate}`);
+                    } else {
+                        console.error(`Start date field startDate${expIndex} not found`);
+                    }
+                }
+                
+                if (exp.endDate && !exp.current) {
+                    const endDateField = document.getElementById(`endDate${expIndex}`);
+                    if (endDateField) {
+                        endDateField.value = exp.endDate;
+                        console.log(`Set end date ${expIndex}: ${exp.endDate}`);
+                    }
+                }
+                
+                if (exp.current) {
+                    const currentField = document.getElementById(`current${expIndex}`);
+                    const endDateField = document.getElementById(`endDate${expIndex}`);
+                    if (currentField) {
+                        currentField.checked = true;
+                        console.log(`Set current position ${expIndex}: true`);
+                    }
+                    if (endDateField) {
+                        endDateField.disabled = true;
+                    }
+                }
+                
+                if (exp.responsibilities) {
+                    const responsField = document.getElementById(`responsibilities${expIndex}`);
+                    if (responsField) {
+                        responsField.value = exp.responsibilities;
+                        console.log(`Set responsibilities ${expIndex}: ${exp.responsibilities.substring(0, 100)}...`);
+                    } else {
+                        console.error(`Responsibilities field responsibilities${expIndex} not found`);
+                    }
+                }
+            });
+        } else {
+            console.log('No experience data found or empty array');
+        }
         
-        // Populate education
-        data.education.forEach((edu, index) => {
-            if (index >= this.educationCount) {
-                this.addEducation();
-            }
-            
-            const eduIndex = index + 1;
-            if (edu.degree) {
-                document.getElementById(`degree${eduIndex}`).value = edu.degree;
-            }
-            if (edu.field) {
-                document.getElementById(`field${eduIndex}`).value = edu.field;
-            }
-            if (edu.school) {
-                document.getElementById(`school${eduIndex}`).value = edu.school;
-            }
-            if (edu.year) {
-                document.getElementById(`gradYear${eduIndex}`).value = edu.year;
-            }
-        });
+        // Populate education - Enhanced logging
+        console.log('Processing education data:', data.education);
+        if (data.education && data.education.length > 0) {
+            data.education.forEach((edu, index) => {
+                console.log(`Processing education ${index + 1}:`, edu);
+                
+                // Add more education fields if needed
+                while (index >= this.educationCount) {
+                    console.log(`Adding education field ${this.educationCount + 1}`);
+                    this.addEducation();
+                }
+                
+                const eduIndex = index + 1;
+                
+                if (edu.degree) {
+                    const degreeField = document.getElementById(`degree${eduIndex}`);
+                    if (degreeField) {
+                        degreeField.value = edu.degree;
+                        console.log(`Set degree ${eduIndex}: ${edu.degree}`);
+                    }
+                }
+                
+                if (edu.field) {
+                    const fieldField = document.getElementById(`field${eduIndex}`);
+                    if (fieldField) {
+                        fieldField.value = edu.field;
+                        console.log(`Set field ${eduIndex}: ${edu.field}`);
+                    }
+                }
+                
+                if (edu.school) {
+                    const schoolField = document.getElementById(`school${eduIndex}`);
+                    if (schoolField) {
+                        schoolField.value = edu.school;
+                        console.log(`Set school ${eduIndex}: ${edu.school}`);
+                    }
+                }
+                
+                if (edu.year) {
+                    const yearField = document.getElementById(`gradYear${eduIndex}`);
+                    if (yearField) {
+                        yearField.value = edu.year;
+                        console.log(`Set graduation year ${eduIndex}: ${edu.year}`);
+                    }
+                }
+            });
+        } else {
+            console.log('No education data found or empty array');
+        }
+        
+        console.log('Form population completed');
     }
 
     setImportMode(mode) {
