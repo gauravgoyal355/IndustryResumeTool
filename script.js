@@ -2485,16 +2485,17 @@ class ResumeBuilder {
             // Clean and normalize the text
             const cleanText = this.cleanResumeText(text);
             
-            // Extract different sections
-            const extractedData = {
-                personalInfo: this.extractPersonalInfo(cleanText),
-                summary: this.extractSummary(cleanText),
-                experience: this.extractExperience(cleanText),
-                education: this.extractEducation(cleanText),
-                skills: this.extractSkills(cleanText),
-                publications: this.extractPublications(cleanText),
-                certifications: this.extractCertifications(cleanText)
-            };
+            // Check if this looks like a LinkedIn export
+            const isLinkedInFormat = cleanText.match(/linkedin\.com\/in\/|Summary\s*Entrepreneur|Experience\s*Nanolyze|Top Skills/gi);
+            
+            let extractedData;
+            if (isLinkedInFormat) {
+                // Use LinkedIn-specific parsing
+                extractedData = this.parseLinkedInFormat(cleanText);
+            } else {
+                // Use generic resume parsing
+                extractedData = this.parseGenericFormat(cleanText);
+            }
             
             // Populate the form with extracted data
             this.populateFormWithExtractedData(extractedData);
@@ -2503,6 +2504,311 @@ class ResumeBuilder {
             console.error('Resume parsing error:', error);
             throw new Error('Failed to parse resume content. Please check the file format and try again.');
         }
+    }
+    
+    parseLinkedInFormat(text) {
+        return {
+            personalInfo: this.extractLinkedInPersonalInfo(text),
+            summary: this.extractLinkedInSummary(text),
+            experience: this.extractLinkedInExperience(text),
+            education: this.extractLinkedInEducation(text),
+            skills: this.extractLinkedInSkills(text),
+            publications: this.extractPublications(text),
+            certifications: this.extractCertifications(text)
+        };
+    }
+    
+    parseGenericFormat(text) {
+        return {
+            personalInfo: this.extractPersonalInfo(text),
+            summary: this.extractSummary(text),
+            experience: this.extractExperience(text),
+            education: this.extractEducation(text),
+            skills: this.extractSkills(text),
+            publications: this.extractPublications(text),
+            certifications: this.extractCertifications(text)
+        };
+    }
+    
+    extractLinkedInPersonalInfo(text) {
+        const info = {
+            name: '',
+            email: '',
+            phone: '',
+            location: '',
+            linkedin: '',
+            website: ''
+        };
+        
+        // Extract name (usually appears early, before Summary)
+        const nameMatch = text.match(/^\s*([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*\n/m);
+        if (nameMatch) {
+            info.name = nameMatch[1].trim();
+        }
+        
+        // Extract email
+        const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g);
+        if (emailMatch) {
+            info.email = emailMatch[0];
+        }
+        
+        // Extract LinkedIn
+        const linkedinMatch = text.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/gi);
+        if (linkedinMatch) {
+            info.linkedin = 'https://' + linkedinMatch[0];
+        }
+        
+        // Extract website (look for other URLs)
+        const websiteMatch = text.match(/(?:www\.|https?:\/\/)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/g);
+        if (websiteMatch) {
+            const nonLinkedInSites = websiteMatch.filter(site => !site.includes('linkedin'));
+            if (nonLinkedInSites.length > 0) {
+                info.website = nonLinkedInSites[0].startsWith('http') ? nonLinkedInSites[0] : 'https://' + nonLinkedInSites[0];
+            }
+        }
+        
+        // Extract location (often appears after name and title)
+        const locationMatch = text.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g);
+        if (locationMatch) {
+            info.location = locationMatch[0];
+        }
+        
+        return info;
+    }
+    
+    extractLinkedInSummary(text) {
+        const summaryMatch = text.match(/Summary\s*([\s\S]*?)(?=Experience|Education|Skills|$)/gi);
+        if (summaryMatch) {
+            return summaryMatch[0].replace(/^Summary\s*/i, '').trim();
+        }
+        return '';
+    }
+    
+    extractLinkedInExperience(text) {
+        const experiences = [];
+        
+        // Find the Experience section
+        const expMatch = text.match(/Experience\s*([\s\S]*?)(?=Education|Skills|Publications|Languages|$)/gi);
+        if (!expMatch) return experiences;
+        
+        let expSection = expMatch[0].replace(/^Experience\s*/i, '').trim();
+        
+        // Split by company names (look for patterns in LinkedIn format)
+        const companyBlocks = this.splitLinkedInExperience(expSection);
+        
+        companyBlocks.forEach(block => {
+            const jobs = this.parseLinkedInCompanyBlock(block);
+            experiences.push(...jobs);
+        });
+        
+        return experiences;
+    }
+    
+    splitLinkedInExperience(expSection) {
+        // LinkedIn format often has company names on their own lines
+        // followed by duration, then job titles
+        
+        // Split by lines that look like company names
+        const lines = expSection.split('\n').map(line => line.trim()).filter(line => line);
+        const blocks = [];
+        let currentBlock = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Check if this line looks like a new company
+            if (this.looksLikeCompanyName(line) && currentBlock.length > 0) {
+                blocks.push(currentBlock.join('\n'));
+                currentBlock = [line];
+            } else {
+                currentBlock.push(line);
+            }
+        }
+        
+        if (currentBlock.length > 0) {
+            blocks.push(currentBlock.join('\n'));
+        }
+        
+        return blocks.filter(block => block.length > 20);
+    }
+    
+    looksLikeCompanyName(line) {
+        // Check for common company indicators
+        return (
+            line.match(/University|Institute|Corporation|Company|Inc|LLC|Ltd|GmbH|AB|Systems|Technologies|Lab|Center|Organization/i) ||
+            line.match(/^[A-Z\s&.,]{5,50}$/) || // All caps or mostly caps
+            (line.split(' ').length <= 5 && // Short enough to be a company name
+             line.match(/^[A-Z]/) && // Starts with capital
+             !line.match(/^(CEO|CTO|Manager|Director|Scientist|Engineer|Associate|Senior|Lead|Principal|Research)/i)) // Not a job title
+        );
+    }
+    
+    parseLinkedInCompanyBlock(block) {
+        const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+        const jobs = [];
+        
+        if (lines.length === 0) return jobs;
+        
+        // First line is likely the company name
+        const company = lines[0];
+        
+        // Look for job entries within this company
+        let currentJob = null;
+        
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Skip duration lines (e.g., "3 years 1 month")
+            if (line.match(/^\d+\s+years?|^\d+\s+months?|^\(\d+\s+years?/i)) {
+                continue;
+            }
+            
+            // Check if this is a job title
+            if (this.looksLikeJobTitle(line)) {
+                // Save previous job if exists
+                if (currentJob) {
+                    jobs.push(currentJob);
+                }
+                
+                // Start new job
+                currentJob = {
+                    jobTitle: line,
+                    company: company,
+                    startDate: '',
+                    endDate: '',
+                    current: false,
+                    responsibilities: ''
+                };
+                continue;
+            }
+            
+            // Check for dates
+            const dateMatch = line.match(/(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi);
+            if (dateMatch && currentJob) {
+                const dateStr = dateMatch[0];
+                const dateParts = dateStr.split(/[-–]/);
+                currentJob.startDate = this.parseDateString(dateParts[0].trim());
+                
+                if (dateParts[1] && dateParts[1].match(/present|current/i)) {
+                    currentJob.current = true;
+                } else if (dateParts[1]) {
+                    currentJob.endDate = this.parseDateString(dateParts[1].trim());
+                }
+                continue;
+            }
+            
+            // Check for location (skip it)
+            if (line.match(/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s+[A-Z]/)) {
+                continue;
+            }
+            
+            // Everything else is responsibilities
+            if (currentJob && line.length > 10) {
+                if (currentJob.responsibilities) {
+                    currentJob.responsibilities += '\n' + line;
+                } else {
+                    currentJob.responsibilities = line;
+                }
+            }
+        }
+        
+        // Add the last job
+        if (currentJob) {
+            jobs.push(currentJob);
+        }
+        
+        return jobs;
+    }
+    
+    looksLikeJobTitle(line) {
+        return (
+            line.match(/CEO|CTO|CFO|VP|President|Director|Manager|Scientist|Researcher|Engineer|Analyst|Assistant|Associate|Senior|Lead|Principal|Research/i) ||
+            (line.split(' ').length <= 6 && // Not too long
+             line.match(/^[A-Z]/) && // Starts with capital
+             !line.match(/^[A-Z\s&.,]{5,}$/) && // Not all caps (likely company)
+             !line.match(/University|Institute|Corporation|Company|Inc|LLC|Ltd/i)) // Not a company
+        );
+    }
+    
+    extractLinkedInEducation(text) {
+        // LinkedIn education section is usually simpler
+        const eduMatch = text.match(/Education\s*([\s\S]*?)(?=Experience|Skills|Publications|Languages|$)/gi);
+        if (!eduMatch) return [];
+        
+        const eduSection = eduMatch[0].replace(/^Education\s*/i, '').trim();
+        return this.parseLinkedInEducationSection(eduSection);
+    }
+    
+    parseLinkedInEducationSection(eduSection) {
+        const education = [];
+        const lines = eduSection.split('\n').map(line => line.trim()).filter(line => line);
+        
+        let currentEdu = null;
+        
+        for (const line of lines) {
+            // Skip very short lines
+            if (line.length < 3) continue;
+            
+            // Check for degree patterns
+            if (line.match(/PhD|Ph\.D|Doctor|Master|Bachelor|MBA|MS|BS|MA|BA|MD|JD|B\.Tech/i)) {
+                // Save previous education
+                if (currentEdu) {
+                    education.push(currentEdu);
+                }
+                
+                // Start new education entry
+                currentEdu = {
+                    degree: line,
+                    field: '',
+                    school: '',
+                    year: ''
+                };
+                
+                // Extract field if present in same line
+                const fieldMatch = line.match(/(?:in|of)\s+([^,\(\)]+)/i);
+                if (fieldMatch) {
+                    currentEdu.field = fieldMatch[1].trim();
+                    currentEdu.degree = line.replace(/\s+(?:in|of)\s+[^,\(\)]+/i, '').trim();
+                }
+                continue;
+            }
+            
+            // Look for years
+            const yearMatch = line.match(/(19|20)\d{2}/g);
+            if (yearMatch && currentEdu) {
+                currentEdu.year = yearMatch[yearMatch.length - 1]; // Take the last year if multiple
+                continue;
+            }
+            
+            // Everything else is likely school name
+            if (currentEdu && !currentEdu.school && line.length > 5) {
+                currentEdu.school = line;
+            }
+        }
+        
+        // Add the last education entry
+        if (currentEdu) {
+            education.push(currentEdu);
+        }
+        
+        return education;
+    }
+    
+    extractLinkedInSkills(text) {
+        // LinkedIn has a specific "Top Skills" section
+        const skillsMatch = text.match(/Top Skills\s*([\s\S]*?)(?=Languages|Certifications|Honors|Publications|$)/gi);
+        if (!skillsMatch) return '';
+        
+        let skills = skillsMatch[0].replace(/^Top Skills\s*/i, '').trim();
+        
+        // Clean up the skills format
+        skills = skills
+            .replace(/\n/g, ', ')
+            .replace(/,\s*,/g, ',')
+            .replace(/^,\s*/, '')
+            .replace(/,\s*$/, '');
+        
+        return skills;
     }
 
     cleanResumeText(text) {
@@ -2591,14 +2897,15 @@ class ResumeBuilder {
         const experiences = [];
         
         // Look for experience section
-        const expSectionMatch = text.match(/(?:experience|employment|work\s+history|professional\s+experience)[\s\S]*?(?=(?:education|skills|publications|certifications|$))/gi);
+        const expSectionMatch = text.match(/(?:experience|employment|work\s+history|professional\s+experience)[\s\S]*?(?=(?:education|skills|publications|certifications|languages|honors|awards|patents|$))/gi);
         
         if (!expSectionMatch) return experiences;
         
         const expSection = expSectionMatch[0];
         
-        // Split by job entries (look for patterns that suggest new jobs)
-        const jobBlocks = expSection.split(/\n(?=\s*[A-Z][^\n]*(?:\n[A-Z][^\n]*)?\n\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}))/g);
+        // Split by company/organization names or clear job separators
+        // Look for patterns like company names followed by job titles and dates
+        const jobBlocks = this.splitExperienceBlocks(expSection);
         
         jobBlocks.forEach(block => {
             const exp = this.parseExperienceBlock(block.trim());
@@ -2608,6 +2915,65 @@ class ResumeBuilder {
         });
         
         return experiences;
+    }
+    
+    splitExperienceBlocks(expSection) {
+        // Remove the section header
+        let cleanSection = expSection.replace(/^[^\n]*(?:experience|employment|work\s+history|professional\s+experience)[^\n]*/i, '').trim();
+        
+        // Look for company/organization patterns
+        const companyPatterns = [
+            // Company names that are likely to be standalone lines
+            /\n([A-Z][A-Za-z\s&.,]+(?:University|Institute|Corporation|Company|Inc|LLC|Ltd|GmbH|AB|Systems|Technologies|Lab|Center|Organization))\s*\n/g,
+            // All caps company names
+            /\n([A-Z\s&.,]{5,50})\s*\n/g,
+            // Date ranges that might indicate new jobs
+            /\n(?=.*(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/g
+        ];
+        
+        // Split by these patterns
+        let blocks = [cleanSection];
+        
+        // Try different splitting strategies
+        companyPatterns.forEach(pattern => {
+            let newBlocks = [];
+            blocks.forEach(block => {
+                const parts = block.split(pattern);
+                newBlocks.push(...parts.filter(part => part.trim().length > 20));
+            });
+            if (newBlocks.length > blocks.length) {
+                blocks = newBlocks;
+            }
+        });
+        
+        // If no good splits found, try to identify job sections by looking for job titles followed by dates
+        if (blocks.length <= 1) {
+            blocks = this.splitByJobTitlePatterns(cleanSection);
+        }
+        
+        return blocks.filter(block => block.trim().length > 30);
+    }
+    
+    splitByJobTitlePatterns(text) {
+        // Look for patterns that suggest job titles
+        const jobTitlePatterns = [
+            /\n((?:CEO|CTO|CFO|VP|Director|Manager|Scientist|Researcher|Engineer|Analyst|Assistant|Associate|Senior|Lead|Principal)\b[^\n]*?)\n/gi,
+            /\n([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)\n(?=.*\d{4})/g
+        ];
+        
+        let bestSplit = [text];
+        
+        jobTitlePatterns.forEach(pattern => {
+            const matches = [...text.matchAll(pattern)];
+            if (matches.length > 1) {
+                const split = text.split(pattern).filter(part => part.trim().length > 30);
+                if (split.length > bestSplit.length) {
+                    bestSplit = split;
+                }
+            }
+        });
+        
+        return bestSplit;
     }
 
     parseExperienceBlock(block) {
@@ -2623,38 +2989,104 @@ class ResumeBuilder {
         
         if (lines.length === 0) return exp;
         
-        // First line is usually job title
-        exp.jobTitle = lines[0];
+        // For LinkedIn format, often company comes first, then job title
+        let companyFound = false;
+        let titleFound = false;
+        let dateFound = false;
+        let responsibilitiesStartIndex = -1;
         
-        // Look for company and dates
-        for (let i = 1; i < lines.length; i++) {
+        for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             
-            // Check for date patterns
-            const dateMatch = line.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})[\s-]*\d{0,4}[\s-]*(?:to|[-–])[\s-]*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi);
-            if (dateMatch) {
-                const dates = dateMatch[0].split(/\s*(?:to|[-–])\s*/);
-                exp.startDate = this.parseDateString(dates[0]);
-                if (dates[1] && !dates[1].match(/present|current/i)) {
-                    exp.endDate = this.parseDateString(dates[1]);
+            // Skip very short lines or lines with just numbers
+            if (line.length < 3 || /^\d+\s*$/.test(line)) continue;
+            
+            // Check for date patterns first
+            const dateMatch = line.match(/(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}|\d{4}\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi);
+            if (dateMatch && !dateFound) {
+                const dateStr = dateMatch[0];
+                const dateParts = dateStr.split(/[-–]|\s+to\s+/i);
+                
+                if (dateParts.length >= 2) {
+                    exp.startDate = this.parseDateString(dateParts[0].trim());
+                    const endPart = dateParts[1].trim();
+                    if (endPart.match(/present|current/i)) {
+                        exp.current = true;
+                    } else {
+                        exp.endDate = this.parseDateString(endPart);
+                    }
                 } else {
-                    exp.current = true;
+                    // Single date, assume it's start date
+                    exp.startDate = this.parseDateString(dateStr);
                 }
+                dateFound = true;
+                responsibilitiesStartIndex = i + 1;
                 continue;
             }
             
-            // If no company found yet and line doesn't look like responsibilities
-            if (!exp.company && !line.startsWith('•') && !line.startsWith('-') && line.length < 100) {
+            // Check for duration patterns (e.g., "3 years 1 month", "(1 year 6 months)")
+            if (line.match(/\d+\s+years?|\d+\s+months?|\(\d+\s+years?.*?\)/i)) {
+                // This might be duration info, skip it
+                continue;
+            }
+            
+            // Check for location patterns (City, State/Country)
+            if (line.match(/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s+[A-Z]/)) {
+                // This looks like a location, skip it for now
+                continue;
+            }
+            
+            // Look for company names (usually have specific patterns)
+            if (!companyFound && (line.match(/University|Institute|Corporation|Company|Inc|LLC|Ltd|GmbH|AB|Systems|Technologies|Lab|Center|Organization/i) || 
+                line.match(/^[A-Z\s&.,]{5,}$/))) {
                 exp.company = line;
+                companyFound = true;
                 continue;
             }
             
-            // Everything else is responsibilities
-            if (exp.responsibilities) {
-                exp.responsibilities += '\n' + line;
-            } else {
-                exp.responsibilities = line;
+            // Look for job titles (usually contain specific keywords or are properly cased)
+            if (!titleFound && !companyFound && 
+                (line.match(/CEO|CTO|CFO|VP|President|Director|Manager|Scientist|Researcher|Engineer|Analyst|Assistant|Associate|Senior|Lead|Principal|Research/i) ||
+                 line.match(/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/))) {
+                exp.jobTitle = line;
+                titleFound = true;
+                continue;
             }
+            
+            // If we haven't found a company yet and this line looks like a company
+            if (!companyFound && line.length > 5 && line.length < 80 && 
+                !line.startsWith('•') && !line.startsWith('-') && 
+                !line.match(/^[a-z]/) && // Not starting with lowercase
+                line.split(' ').length <= 6) { // Not too many words
+                exp.company = line;
+                companyFound = true;
+                continue;
+            }
+            
+            // If we haven't found a title yet and this could be one
+            if (!titleFound && line.length > 3 && line.length < 80 &&
+                !line.startsWith('•') && !line.startsWith('-')) {
+                exp.jobTitle = line;
+                titleFound = true;
+                continue;
+            }
+            
+            // Everything else goes to responsibilities (if we've found basic info)
+            if ((companyFound || titleFound) && responsibilitiesStartIndex <= i) {
+                if (exp.responsibilities) {
+                    exp.responsibilities += '\n' + line;
+                } else {
+                    exp.responsibilities = line;
+                }
+            }
+        }
+        
+        // Clean up responsibilities
+        if (exp.responsibilities) {
+            exp.responsibilities = exp.responsibilities
+                .replace(/Page \d+ of \d+/g, '') // Remove page numbers
+                .replace(/^\s*[\n\r]+|[\n\r]+\s*$/g, '') // Trim newlines
+                .trim();
         }
         
         return exp;
