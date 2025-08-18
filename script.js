@@ -52,8 +52,11 @@ class ResumeBuilder {
     }
 
     setupImportFeatures() {
+        console.log('🔧 Setting up import features...');
+        
         // LinkedIn import
         document.getElementById('linkedin-import').addEventListener('click', () => {
+            console.log('🔗 LinkedIn import clicked');
             this.importFromLinkedIn();
         });
 
@@ -61,41 +64,67 @@ class ResumeBuilder {
         const fileInput = document.getElementById('file-upload');
         const fileLabel = document.getElementById('file-input-label');
         
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                this.handleFileUpload(e.target.files[0]);
-            }
-        });
+        console.log('📁 File input element:', fileInput ? 'Found' : 'Not found');
+        console.log('🏷️ File label element:', fileLabel ? 'Found' : 'Not found');
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                console.log('📎 File input change event triggered');
+                console.log('📁 Files selected:', e.target.files.length);
+                if (e.target.files.length > 0) {
+                    console.log('📄 Processing file:', e.target.files[0].name);
+                    this.handleFileUpload(e.target.files[0]);
+                } else {
+                    console.log('⚠️ No files selected');
+                }
+            });
+        } else {
+            console.error('❌ File input element not found!');
+        }
         
         // Drag and drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            fileLabel.addEventListener(eventName, this.preventDefaults, false);
-            document.body.addEventListener(eventName, this.preventDefaults, false);
-        });
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            fileLabel.addEventListener(eventName, () => {
-                fileLabel.classList.add('dragover');
+        if (fileLabel) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileLabel.addEventListener(eventName, this.preventDefaults, false);
+                document.body.addEventListener(eventName, this.preventDefaults, false);
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileLabel.addEventListener(eventName, () => {
+                    console.log('📋 Drag event:', eventName);
+                    fileLabel.classList.add('dragover');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileLabel.addEventListener(eventName, () => {
+                    console.log('📋 Drop event:', eventName);
+                    fileLabel.classList.remove('dragover');
+                }, false);
+            });
+            
+            fileLabel.addEventListener('drop', (e) => {
+                console.log('📁 File dropped');
+                const files = e.dataTransfer.files;
+                console.log('📁 Dropped files count:', files.length);
+                if (files.length > 0) {
+                    console.log('📄 Processing dropped file:', files[0].name);
+                    this.handleFileUpload(files[0]);
+                } else {
+                    console.log('⚠️ No files in drop event');
+                }
             }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            fileLabel.addEventListener(eventName, () => {
-                fileLabel.classList.remove('dragover');
-            }, false);
-        });
-        
-        fileLabel.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                this.handleFileUpload(files[0]);
-            }
-        }, false);
+        } else {
+            console.error('❌ File label element not found!');
+        }
 
         // Manual entry toggle
         document.getElementById('manual-entry').addEventListener('click', () => {
+            console.log('✍️ Manual entry clicked');
             this.setImportMode('manual');
         });
+        
+        console.log('✅ Import features setup completed');
     }
     
     preventDefaults(e) {
@@ -2316,7 +2345,18 @@ class ResumeBuilder {
     }
 
     async handleFileUpload(file) {
-        if (!file) return;
+        console.log('🔍 File upload started:', file ? file.name : 'No file');
+        
+        if (!file) {
+            console.log('❌ No file provided');
+            return;
+        }
+        
+        console.log('📄 File details:', {
+            name: file.name,
+            type: file.type,
+            size: file.size + ' bytes'
+        });
         
         const statusDiv = this.createStatusDiv();
         
@@ -2327,33 +2367,47 @@ class ResumeBuilder {
             
             let extractedText = '';
             
+            console.log('🔄 Starting file parsing for type:', file.type);
+            
             if (file.type === 'application/pdf') {
+                console.log('📋 Processing PDF file');
                 extractedText = await this.parsePDF(file);
             } else if (file.type.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+                console.log('📄 Processing Word document');
                 extractedText = await this.parseWord(file);
             } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                console.log('📝 Processing text file');
                 extractedText = await this.parseTextFile(file);
             } else {
+                console.log('❌ Unsupported file type:', file.type);
                 throw new Error('Unsupported file format. Please upload PDF, DOC, DOCX, or TXT files.');
             }
             
+            console.log('✅ Text extraction completed. Length:', extractedText ? extractedText.length : 0);
+            console.log('📜 First 200 characters of extracted text:', extractedText ? extractedText.substring(0, 200) : 'No text');
+            
             if (!extractedText || extractedText.trim().length < 50) {
+                console.log('❌ Insufficient text extracted');
                 throw new Error('Could not extract sufficient text from the file. Please ensure the file contains readable text.');
             }
             
+            console.log('🔧 Starting resume text parsing...');
             // Parse the extracted text and populate form
             this.parseResumeText(extractedText);
             
             statusDiv.textContent = `File uploaded successfully! Extracted ${extractedText.length} characters. Review and edit the populated information.`;
             statusDiv.className = 'file-upload-status success';
             
+            console.log('🔄 Updating preview...');
             // Update preview
             this.updatePreview();
             
             this.showNotification('Resume data extracted and imported successfully!', 'success');
+            console.log('✅ File upload process completed successfully');
             
         } catch (error) {
-            console.error('File upload error:', error);
+            console.error('❌ File upload error:', error);
+            console.error('Error stack:', error.stack);
             statusDiv.textContent = `Error: ${error.message}`;
             statusDiv.className = 'file-upload-status error';
             statusDiv.style.display = 'block';
@@ -3449,10 +3503,23 @@ document.head.appendChild(notificationStyles);
 
 // Initialize the resume builder when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.resumeBuilder = new ResumeBuilder();
+    console.log('🚀 Initializing Resume Builder...');
+    
+    try {
+        window.resumeBuilder = new ResumeBuilder();
+        console.log('✅ Resume Builder initialized successfully');
+        console.log('📝 Resume Builder instance:', window.resumeBuilder);
+    } catch (error) {
+        console.error('❌ Failed to initialize Resume Builder:', error);
+        console.error('Error details:', error.stack);
+    }
     
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
+        console.log('🎨 Initializing Lucide icons...');
         lucide.createIcons();
+        console.log('✅ Lucide icons initialized');
+    } else {
+        console.warn('⚠️ Lucide icons library not available');
     }
 });
