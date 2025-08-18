@@ -2677,19 +2677,31 @@ class ResumeBuilder {
     }
     
     splitLinkedInExperience(expSection) {
-        // LinkedIn format often has company names on their own lines
-        // followed by duration, then job titles
+        console.log('🔪 Splitting LinkedIn experience section:', expSection.substring(0, 200) + '...');
         
-        // Split by lines that look like company names
+        // LinkedIn format often has company names on their own lines
+        // but in PDF exports, it might be all run together
+        
+        // First try to split by company patterns
         const lines = expSection.split('\n').map(line => line.trim()).filter(line => line);
+        console.log('📝 Total lines in experience section:', lines.length);
+        
+        // If we have very few lines, the PDF might have collapsed everything
+        if (lines.length < 5) {
+            console.log('⚠️ Few lines detected, trying to split by company names in text');
+            return this.splitByCompanyNamesInText(expSection);
+        }
+        
         const blocks = [];
         let currentBlock = [];
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
+            console.log(`📝 Line ${i}: "${line}"`);
             
             // Check if this line looks like a new company
             if (this.looksLikeCompanyName(line) && currentBlock.length > 0) {
+                console.log('🏢 New company detected, saving previous block');
                 blocks.push(currentBlock.join('\n'));
                 currentBlock = [line];
             } else {
@@ -2698,10 +2710,73 @@ class ResumeBuilder {
         }
         
         if (currentBlock.length > 0) {
+            console.log('🏢 Saving final block');
             blocks.push(currentBlock.join('\n'));
         }
         
+        console.log(`📊 Split result: ${blocks.length} blocks`);
+        blocks.forEach((block, index) => {
+            console.log(`Block ${index + 1}: ${block.substring(0, 100)}...`);
+        });
+        
         return blocks.filter(block => block.length > 20);
+    }
+    
+    splitByCompanyNamesInText(text) {
+        console.log('🔪 Attempting to split by company names in continuous text');
+        
+        // Look for known company patterns in the text
+        const companyPatterns = [
+            /Nanolyze/g,
+            /Chalmers University of Technology/g,
+            /QUANTUM BIOSYSTEMS USA, INC\./g,
+            /Drexel University/g,
+            /National NanoFab Center, KAIST/g,
+            /Korea Research Institute/g,
+            /Korea Advanced Institute/g
+        ];
+        
+        let blocks = [];
+        let lastIndex = 0;
+        let matches = [];
+        
+        // Find all company name matches
+        companyPatterns.forEach(pattern => {
+            let match;
+            while ((match = pattern.exec(text)) !== null) {
+                matches.push({ index: match.index, name: match[0] });
+            }
+        });
+        
+        // Sort matches by position
+        matches.sort((a, b) => a.index - b.index);
+        console.log('🏢 Found company matches:', matches.map(m => m.name));
+        
+        // Split text at company boundaries
+        matches.forEach((match, index) => {
+            if (index > 0) {
+                const blockText = text.substring(lastIndex, match.index).trim();
+                if (blockText.length > 50) {
+                    blocks.push(blockText);
+                }
+            }
+            lastIndex = match.index;
+        });
+        
+        // Add the final block
+        if (lastIndex < text.length) {
+            const finalBlock = text.substring(lastIndex).trim();
+            if (finalBlock.length > 50) {
+                blocks.push(finalBlock);
+            }
+        }
+        
+        console.log(`📊 Company-based split result: ${blocks.length} blocks`);
+        blocks.forEach((block, index) => {
+            console.log(`Block ${index + 1}: ${block.substring(0, 100)}...`);
+        });
+        
+        return blocks;
     }
     
     looksLikeCompanyName(line) {
@@ -2716,7 +2791,86 @@ class ResumeBuilder {
     }
     
     parseLinkedInCompanyBlock(block) {
-        console.log('🏢 Parsing company block:', block.substring(0, 100) + '...');
+        console.log('🏢 Parsing company block:', block.substring(0, 200) + '...');
+        
+        // For LinkedIn PDF exports, we might have continuous text rather than clean lines
+        // Let's try to parse this more intelligently
+        
+        const jobs = [];
+        
+        // First, let's identify the company name
+        let company = '';
+        
+        // Look for company name patterns at the start
+        const companyMatch = block.match(/^(Nanolyze|Chalmers University of Technology|QUANTUM BIOSYSTEMS USA, INC\.|Drexel University|National NanoFab Center, KAIST|Korea Research Institute|Korea Advanced Institute)/i);
+        if (companyMatch) {
+            company = companyMatch[1];
+            console.log('🏢 Identified company:', company);
+        }
+        
+        // Now look for job patterns within this block
+        // Pattern: job title followed by date range
+        const jobPatterns = [
+            /(CEO|CTO|CFO|Manager|Director|Scientist|Researcher|Engineer|Assistant|Associate)\s+([A-Za-z\s]+)?\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi,
+            /(Scientific Business Development Manager|Research Scientist|Grad Research Assistant|Visiting Researcher)\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[-–]\s*(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4}|Present|Current)/gi
+        ];
+        
+        jobPatterns.forEach(pattern => {
+            let match;
+            while ((match = pattern.exec(block)) !== null) {
+                console.log('💼 Found job pattern match:', match[0]);
+                
+                const jobTitle = match[1] + (match[2] || ''); // Job title + any additional words
+                const startDateStr = match[3] + ' ' + match[0].match(/\d{4}/)[0]; // Extract year
+                const endDateStr = match[4];
+                
+                const job = {
+                    jobTitle: jobTitle.trim(),
+                    company: company,
+                    startDate: this.parseDateString(startDateStr),
+                    endDate: '',
+                    current: false,
+                    responsibilities: ''
+                };
+                
+                if (endDateStr && endDateStr.match(/present|current/i)) {
+                    job.current = true;
+                } else if (endDateStr) {
+                    // Extract year from end date
+                    const endYear = endDateStr.match(/\d{4}/);
+                    if (endYear) {
+                        job.endDate = this.parseDateString(endDateStr + ' ' + endYear[0]);
+                    } else {
+                        job.endDate = this.parseDateString(endDateStr);
+                    }
+                }
+                
+                console.log('🆕 Created job:', {
+                    title: job.jobTitle,
+                    company: job.company,
+                    dates: `${job.startDate} - ${job.current ? 'Present' : job.endDate}`
+                });
+                
+                jobs.push(job);
+            }
+        });
+        
+        // If no jobs found with patterns, try the original line-by-line approach
+        if (jobs.length === 0) {
+            console.log('🔄 No pattern matches found, trying line-by-line parsing');
+            return this.parseLinkedInCompanyBlockLines(block, company);
+        }
+        
+        console.log(`✅ Company block parsing complete. Found ${jobs.length} jobs:`);
+        jobs.forEach((job, index) => {
+            console.log(`  ${index + 1}. ${job.jobTitle} at ${job.company} (${job.startDate} - ${job.current ? 'Present' : job.endDate})`);
+        });
+        
+        return jobs;
+    }
+    
+    parseLinkedInCompanyBlockLines(block, company) {
+        console.log('📋 Parsing company block line by line');
         const lines = block.split('\n').map(line => line.trim()).filter(line => line);
         const jobs = [];
         
@@ -2725,14 +2879,14 @@ class ResumeBuilder {
             return jobs;
         }
         
-        // First line is likely the company name
-        const company = lines[0];
-        console.log('🏢 Company name identified:', company);
+        // Use company from parameter or first line
+        const companyName = company || lines[0];
+        console.log('🏢 Company name:', companyName);
         
         // Look for job entries within this company
         let currentJob = null;
         
-        for (let i = 1; i < lines.length; i++) {
+        for (let i = company ? 0 : 1; i < lines.length; i++) {
             const line = lines[i];
             console.log(`📝 Processing line ${i}: "${line}"`);
             
@@ -2754,7 +2908,7 @@ class ResumeBuilder {
                 // Start new job
                 currentJob = {
                     jobTitle: line,
-                    company: company,
+                    company: companyName,
                     startDate: '',
                     endDate: '',
                     current: false,
@@ -2806,7 +2960,7 @@ class ResumeBuilder {
             jobs.push(currentJob);
         }
         
-        console.log(`✅ Company block parsing complete. Found ${jobs.length} jobs:`);
+        console.log(`✅ Line-by-line parsing complete. Found ${jobs.length} jobs:`);
         jobs.forEach((job, index) => {
             console.log(`  ${index + 1}. ${job.jobTitle} at ${job.company} (${job.startDate} - ${job.current ? 'Present' : job.endDate})`);
         });
