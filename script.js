@@ -22,42 +22,7 @@ class ResumeBuilder {
         document.getElementById('resume-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.generateResume();
-        })
-
-    // Setup import features
-    setupImportFeatures() {
-        // LinkedIn import
-        document.getElementById('linkedin-import').addEventListener('click', () => {
-            this.importFromLinkedIn();
         });
-
-        // File upload
-        document.getElementById('file-upload').addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files[0]);
-        });
-
-        // Manual entry toggle
-        document.getElementById('manual-entry').addEventListener('click', () => {
-            this.setImportMode('manual');
-    }
-
-    // Setup import features
-    setupImportFeatures() {
-        // LinkedIn import
-        document.getElementById('linkedin-import').addEventListener('click', () => {
-            this.importFromLinkedIn();
-        });
-
-        // File upload
-        document.getElementById('file-upload').addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files[0]);
-        });
-
-        // Manual entry toggle
-        document.getElementById('manual-entry').addEventListener('click', () => {
-            this.setImportMode('manual');
-        });
-    }
 
         // Add/Remove experience and education
         document.getElementById('add-experience').addEventListener('click', () => this.addExperience());
@@ -83,6 +48,23 @@ class ResumeBuilder {
         // Edit mode toggle
         document.getElementById('edit-mode-toggle').addEventListener('click', () => {
             this.toggleEditMode();
+        });
+    }
+
+    setupImportFeatures() {
+        // LinkedIn import
+        document.getElementById('linkedin-import').addEventListener('click', () => {
+            this.importFromLinkedIn();
+        });
+
+        // File upload
+        document.getElementById('file-upload').addEventListener('change', (e) => {
+            this.handleFileUpload(e.target.files[0]);
+        });
+
+        // Manual entry toggle
+        document.getElementById('manual-entry').addEventListener('click', () => {
+            this.setImportMode('manual');
         });
     }
 
